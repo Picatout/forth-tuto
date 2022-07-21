@@ -175,5 +175,23 @@ la même que celle déclarée par **FOR**.  Plusieurs boucles peuvent-être imbr
 
 Les relations sont constituées de 1 expression arithmétique ou de 2 expressions séparées par un opérateur de comparaison. Toute valeur non nulle est considérée comme vrai. Les opérateurs de comparaison 
 ne retourne que 2 valeurs soit **0** *faux* ou **-1** *vrai*.
+```
+#LET A=3,B=4,C=0      
+
+#IF A ? "VRAI" 
+  VRAI
+
+#IF NOT C ? "C=0" 
+  C=0
+
+#IF A>B ? "A>B" 
+
+
+#IF B>A ? "B>A" 
+   B>A
+
+#
+
+```
 
   

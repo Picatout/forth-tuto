@@ -1388,7 +1388,7 @@ defer NEW
 					4 error 
 				ENDIF
 			ENDOF
-			IDLEX-QUOTE OF
+			IDLEX-QUOTE OF DROP 
 				field-width @ OVER - SPACES  
 				TYPE
 			ENDOF  
