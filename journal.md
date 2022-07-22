@@ -1,3 +1,9 @@
+### 2022-07-22
+
+* Modifir le système de gestion des erreurs.
+
+* Continuer le travail sur [manuel-tiny-BASIC.md](manuel-tiny-BASIC.md)
+
 ### 2022-07-21
 
 * Continuer la rédaction de [manuel-tiny-BASIC.md](manuel-tiny-BASIC.md)

@@ -345,25 +345,51 @@ PROG-MEM PROG-END !
 \ taill2 256 entiers
 256 INT16-ARRAY at-array 
 
-: error ( c-addr u -- )
-	?DUP IFF
-		cr line@
+\ constantes identifiant le type d'erreur
+0 CONSTANT ERR-NONE
+1 CONSTANT ERR-SYNTAX
+2 CONSTANT ERR-UNKOWN
+3 CONSTANT ERR-RT-ONLY
+4 CONSTANT ERR-CMD-LINE-ONLY
+5 CONSTANT ERR-MISSING
+6 CONSTANT ERR-NOT-LINE
+9 CONSTANT ERR-QUIT 
+
+\ rapporte les erreurs 
+\ et vide la pile des arguments
+: error ( i*x n -- )
+	?DUP IFF 
+		CR ." erreur: " DUP . CR 
+		line@
 		FRUN test-flag IFF
 			swap 3 + swap 3 -
 		ENDIF 
 		tb-src@ SWAP DROP - 
 		DUP >R TYPE
-		CR R> SPACES [CHAR] ^ EMIT 
-		throw
-	ENDIF 
+		CR R> SPACES [CHAR] ^ EMIT CR
+		CASE
+			ERR-SYNTAX OF ." Erreur de syntaxe." ENDOF 
+			ERR-UNKOWN OF ." Commane inconnue." ENDOF
+			ERR-CMD-LINE-ONLY OF ." Ne peut-être utilisé que sur la ligne de commande." ENDOF
+			ERR-RT-ONLY OF ." Ne peut-être utilisé que dans un programme." ENDOF
+			ERR-MISSING OF ." Argument manquant." ENDOF
+			ERR-NOT-LINE OF ." Aucune ligne ne porte ce numéro." ENDOF
+			-514 OF ." Fichier inexistant." ENDOF 
+			-28 OF ." Programme interrompu par l'utilisateur." ENDOF 
+		ENDCASE 
+		sp0 @ sp! \ vide la pile 
+		0 flags !
+		-1 for-depth ! 
+	ENDIF  
 ;
+
 
 \ génère une erreur si 
 \ la commande est invoquée
 \ sur la ligne de commande
 : run-time-only ( -- )
 	FRUN test-flag INVERT  IFF 
-			12 error
+			ERR-RT-ONLY throw  
 	ENDIF 
 ;
 
@@ -372,7 +398,7 @@ PROG-MEM PROG-END !
 \ en run time
 : cmd-line-only ( -- )
 	FRUN test-flag IFF 
-		13 error
+		ERR-CMD-LINE-ONLY throw
 	ENDIF
 ;
 
@@ -748,7 +774,7 @@ defer valid-char?
 		[CHAR] ' skip-after
 		IDLEX-QUOTE
 		ENDOF 
-	9 error 
+	ERR-SYNTAX THROW 
 	SWAP ENDCASE
 	tb-src@ DROP 
 ;
@@ -831,7 +857,7 @@ defer valid-char?
 	next-lex R@
 	<> IFF
 		R> DROP 
-		6 error 
+		ERR-SYNTAX THROW 
 	ELSE 
 		R>
 	ENDIF  
@@ -871,7 +897,7 @@ defer relation
 		sfind IFF
 			execute
 		ELSE
-			8 error
+			ERR-UNKOWN THROW
 		ENDIF 
 	ENDOF
 	IDLEX-LPAREN OF
@@ -1011,12 +1037,12 @@ defer relation
 			IFF 
 				execute
 			ELSE 
-				2 error  
+				ERR-UNKOWN THROW  
 			ENDIF
 		ELSE IDLEX-SCOL = IFF
 			2DROP 
 			ELSE
-				1 error
+				ERR-SYNTAX THROW
 			ENDIF  
 		ENDIF
 	REPEAT 
@@ -1059,10 +1085,10 @@ defer relation
 			SWAP DROP \ drop line#
 			DUP 2 + C@
 		ELSE 
-			11 error 
+			ERR-NOT-LINE THROW 
 		ENDIF 
 	ELSE
-		10 error
+		ERR-SYNTAX THROW 
 	 ENDIF
 ;
 
@@ -1120,6 +1146,7 @@ defer relation
 \ BASIC: END 
 \ termine l'exécution du programme
 : END 
+	run-time-only
 	0 flags !
 	FLINE-DONE flags ! 
 ;
@@ -1137,6 +1164,7 @@ defer LET
 \ expr doit résulté en 
 \ un numéro de ligne existant
 : GOSUB 
+	run-time-only
 	r>
 	parse-target
 	line@
@@ -1153,6 +1181,7 @@ defer LET
 \ expr doit résulté en 
 \ un numéro de ligne existant
 : GOTO 
+	run-time-only
 	parse-target
 	line! 
 	tb-src-init 
@@ -1220,7 +1249,7 @@ defer LET
 			IDLEX-VAR = IFF
 				DROP let-var 
 			ELSE
-				5 error
+				ERR-SYNTAX THROW
 			ENDIF 
 		ENDIF
 		next-lex 
@@ -1269,16 +1298,17 @@ defer NEW
 : LOAD (  ) 
 	cmd-line-only
 	next-lex
-	IDLEX-LABEL = IFF ." chargement de " 2dup type cr
-		NEW 
+	IDLEX-LABEL = IFF 
+		NEW 2DUP
 		r/o open-file throw TOO fd-in
+		." chargement de " type cr
 		BEGIN
-			CMD-BUF CMD-BUF-SIZE fd-in read-line error WHILE 
+			CMD-BUF CMD-BUF-SIZE fd-in read-line THROW WHILE 
 			CMD-BUF SWAP 
 			tb-eval 	
 		REPEAT
 		DROP
-		fd-in close-file error
+		fd-in close-file THROW
 		tb-src@ drop 0 tb-src-update 
 	ENDIF 
 ; 
@@ -1286,6 +1316,7 @@ defer NEW
 \ BASIC: NEW 
 \ efface le programme em mémoire
 : _NEW 
+	cmd-line-only
 	PROG-MEM PROG-END ! 
 	0 flags !
 ;
@@ -1298,7 +1329,7 @@ defer NEW
 \ à la limite
 \ syntaxe: NEXT var 
 : NEXT ( -- )  
-	next-lex IDLEX-VAR <> IFF 3 error ENDIF
+	next-lex IDLEX-VAR <> IFF ERR-SYNTAX THROW ENDIF
 	DROP 
 	DUP I@ step@ DUP >R
 	+ DUP ROT i! 
@@ -1367,7 +1398,7 @@ defer NEW
 				next-lex IDLEX-INTEGER = IFF 
 					DROP 127 AND emit
 				ELSE
-					IDLEX-BKSLH error
+					ERR-SYNTAX THROW
 				ENDIF
 			ENDOF 
 			IDLEX-LABEL OF 
@@ -1385,14 +1416,14 @@ defer NEW
 				IDLEX-INTEGER = IFF
 					DROP field-width ! 
 				ELSE
-					4 error 
+					ERR-SYNTAX THROW 
 				ENDIF
 			ENDOF
 			IDLEX-QUOTE OF DROP 
 				field-width @ OVER - SPACES  
 				TYPE
 			ENDOF  
-			8 error 
+			ERR-SYNTAX THROW 
 			ENDCASE
 			-1
 		ELSE 
@@ -1404,6 +1435,15 @@ defer NEW
 
 ' PRINT ALIAS ?
 
+\ BASIC: QUIT 
+\ Quitte l'interpréteur BASIC
+\ retourne à la ligne de commande 
+\ de gforth
+: QUIT ( -- )
+	sp0 @ sp! 
+	ERR-QUIT THROW 
+;
+
 \ BASIC: REM texte
 \ commentaire 
 : REM (  --  )
@@ -1414,6 +1454,7 @@ defer NEW
 \ sortie de sous-routine 
 \ syntaxe RETURN 
 : RETURN 
+	run-time-only
 	r>
 	2r>
 	tb-src!
@@ -1448,8 +1489,11 @@ defer NEW
 			PROG-MEM DUP 2 + c@
 			line!
 			tb-src-init
-			FRUN set-flag
+			-1 for-depth ! 
+			FRUN flags !
 			run-loop
+		ELSE 
+			." Aucun programme en mémoire"
 		ENDIF
 	ENDIF
 ; 
@@ -1472,7 +1516,7 @@ defer NEW
 		REPEAT
 		fd-out close-file THROW 
 	ELSE 
-		11 error
+		ERR-SYNTAX THROW 
 	ENDIF 
 ; 
 
@@ -1533,8 +1577,10 @@ defer NEW
 		CMD-BUF CMD-BUF-SIZE 
 		CR [CHAR] # EMIT 
 		read-cmd-line ( buf size -- buf cnt )
-		cmd-eval 
-		
+		['] cmd-eval CATCH ?DUP IFF 
+			DUP ERR-QUIT = IFF EXIT ENDIF 
+			error
+		ENDIF 
 	AGAIN 
 ; 
 
@@ -1544,10 +1590,22 @@ defer NEW
 	HI 
 	PROG-MEM PROG-END !
 	utime drop seed !  
-	CMD-LINE 
+	CMD-LINE
+	CR ." Sortie de tiny BASIC"
+	CR ." pour supprimer tiny BASIC"
+	CR ." faite: kill-basic"
+	1000 MS  CR 
 ; 
 
 \ démarre l'interpréteur
-\ BASIC
-  
-\ KILL-BASIC 
+\ Utiliser la commande QUIT
+\ pour revenir à la ligne de
+\ commande gforth 
+BASIC
+
+\ pour supprimer le programme 
+\ tin-basic de l'environnement
+\ gforth faire KILL-BASIC 
+\ à partir de la ligne de 
+\ commande gforth   
+

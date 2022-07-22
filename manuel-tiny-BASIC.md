@@ -136,6 +136,8 @@ l'exécution se poursuit à la commande suivante.
 Plusieurs expressions ou chaînes peuvent-être imprimés en les séparant par une virgule. La largeur de colonne peut-être modifiée à tout moment entre 2 arguments.  Si la commande se termine par 
 une virgule il n'y a pas de retour à la ligne d'envoyé au terminal.
 
+* **QUIT** Permet de quitter tiny BASIC et de retourner à la ligne de commande du système forth. Pour supprimer tiny BASIC de l'environnement forth faite la commande **kill-basic**. 
+
 * **REM commentaire**  Cette commande débute un commentaire et tout le texte qui suit jusqu'à la fin de la ligne est ignoré par l'interpréteur.
 
 * **RETURN**  Cett commande permet de quitter une sous-routine et de continuer l'exécution du programme après le **GOSUB n** qui a appellé cette sous-routine.
@@ -194,4 +196,27 @@ ne retourne que 2 valeurs soit **0** *faux* ou **-1** *vrai*.
 
 ```
 
-  
+### Messages d'erreurs
+
+Lorsqu'il se produit une erreur dans un programme la ligne où s'est produite l'erreur est affichée à partir du début jusqu'au point de l'erreur et un message est affiché.
+```
+#? fsaf 
+
+erreur: 2 
+? fsaf
+      ^
+Commane inconnue.
+#
+```
+
+code | message | description
+--
+1 | Erreur de syntaxe. | Il y a une erreur de syntaxe dans le programme ou la commande
+2 | Commande inconnue. | Un nom de commande ou de fonction inconnu a été utilisé.  
+3 | Ne peut-être utilisé que dans un programme. | Vous avez tenter d'utilisez sur la ligne de comnmande une commande qui ne peut-être qu'utilisée dans un programme.
+4 | Ne peut-être utilisé que sur la ligne de commande. | Vous avez utilisé dans un programme une commande qui ne peut l'être que sur la ligne de commande.
+5 | Argument manquant. | La commande exige un argument qui ne lui a pas été fourni.
+6 | Aucune ligne ne porte ce numéro. | Un mauvais numéro de ligne a été fourni à une commande **GOTO** ou **GOSUB**.
+-28 | Programme interrompu par l'utilisateur. | Vous avez utiliser **CTRL+C** pour interrompe un programme en cours d'exécution.
+-514 | Fichier inexistant. | Vous avez fourni un mauvais nom de fichier à la commande **LOAD** ou **RUN**. 
+ 
