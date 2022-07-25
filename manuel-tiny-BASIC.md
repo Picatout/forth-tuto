@@ -92,6 +92,8 @@ Pour la commande **IF** il existe des opérateurs relationnel qui établissent l
 
 * **ABS(expr)** retourne la valeur absolue de *expr*
 
+* **ASC(caractère)** retourne la valeur ASCII d'un caractère. 
+
 * **KEY** Attend une touche du clavier, retourne le caractère
 
 * **KEY?** Retourne vrai si un caractère est disponible du terminal.
@@ -110,7 +112,7 @@ Pour la commande **IF** il existe des opérateurs relationnel qui établissent l
 
 * **GOTO line#** Fait un saut vers la ligne *line*
 
-* **IF relation  ; [déclaration]*  Si la relation retourne vrai les déclaration qui suivent sur la même ligne sont exécuté. Sinon l'écution continue sur la ligne suivante.
+* **IF relation  THEN liste-commandes**  Si la relation retourne vrai les commandes qui suivent sur la même ligne sont exécutées. Sinon l'écution continue sur la ligne suivante.
 ```
 ```
 
@@ -164,7 +166,7 @@ de modifier cette ordre.
 
 * Le **GOSUB n** Permet d'appeller une sous-routine qui début à la ligne **n**. La sous-routine doit se terminer par la commande **RETURN**. Ce qui ramène l'exécution juste après l'appel **GOSUB**.
 
-* Le **IF relation  liste-de-commande**  permet une exécution conditionnelle de la liste de commandes qui suit la relation si celle-ci est  vrai. Si la relation est fausse **liste-de-commandes** est 
+* Le **IF relation  THEN liste-de-commande**  permet une exécution conditionnelle de la liste de commandes qui suit la relation si celle-ci est  vrai. Si la relation est fausse **liste-de-commandes** est 
 ignorée et l'exécution se poursuit à la ligne suivante.
 
 * La boucle **FOR var=expr TO limite [STEP incrément] liste-de-commande NEXT var**  Permet d'exécuter une liste de commandes en boucle contrôler par une variable compteur. La variable est initialisée à 
@@ -183,13 +185,13 @@ ne retourne que 2 valeurs soit **0** *faux* ou **-1** *vrai*.
 #IF A ? "VRAI" 
   VRAI
 
-#IF NOT C ? "C=0" 
+#IF NOT C THEN ? "C=0" 
   C=0
 
-#IF A>B ? "A>B" 
+#IF A>B THEN ? "A>B" 
 
 
-#IF B>A ? "B>A" 
+#IF B>A THEN ? "B>A" 
    B>A
 
 #

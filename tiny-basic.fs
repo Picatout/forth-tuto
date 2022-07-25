@@ -1,9 +1,72 @@
 \ tiny BASIC 
+\ Copyright Jacques Deschênes 2022 
+\ This file is part of tiny BASIC 
+\
+\     tiny BASIC is free software: you can redistribute it and/or modify
+\     it under the terms of the GNU General Public License as published by
+\     the Free Software Foundation, either version 3 of the License, or
+\     (at your option) any later version.
+\
+\     tiny BASIC is distributed in the hope that it will be useful,
+\     but WITHOUT ANY WARRANTY; without even the implied warranty of
+\     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\     GNU General Public License for more details.
+\
+\     You should have received a copy of the GNU General Public License
+\     along with tiny BASIC.  If not, see <http://www.gnu.org/licenses/>.
+\
 
+
+
+MARKER KILL-BASIC 
 
 require random.fs
 
-MARKER KILL-BASIC 
+VARIABLE WLIST-1
+VARIABLE WLIST-TBASIC
+GET-CURRENT WLIST-1 !
+WORDLIST WLIST-TBASIC !
+GET-ORDER WLIST-TBASIC @ SWAP 1+ SET-ORDER
+WLIST-TBASIC @ SET-CURRENT 
+
+
+\ valeur minimale d'un entier 16 bits
+-32768 CONSTANT MIN-INT
+\ valeur maxiamle d'un entier 16 bits
+32767 CONSTANT MAX-INT
+\ masque pour entier non signé de 16 bits
+$FFFF CONSTANT U16-MASK  
+\ Si le bit 15 == 1
+\ étend le signe de l'entier sur 
+\ sur le nombre de bits des entiers
+\ du système, i.e 32 ou 64 bits. 
+: sign-extend ( u16 -- n )
+	DUP MAX-INT U> IF
+		-1 U16-MASK - OR 
+	ENDIF 
+;
+
+\ empile un entier de 16 bits 
+\ à partir de la mémoire 
+\ paramètres:
+\ 	addr  addresse à lire
+\ sortie:
+\     n   entier lue
+: I@ ( addr -- n )
+	DUP C@ 256 * 
+	SWAP 1+ C@ +
+; 
+
+\ dépose un entier 16 bits en mmémoire 
+\ paramètres:
+\	n		entier à déposer
+\	addr	addresse destination
+: I! ( n addr -- )
+	SWAP sign-extend SWAP 
+	DUP 2 PICK 
+	8 RSHIFT SWAP C!
+	1+ C!
+;
 
 \ ***************************************
 \ création d'autres mots forth
@@ -30,33 +93,53 @@ MARKER KILL-BASIC
 
 \ ***************************************
 
+\ recherche le nom d'une commande 
+\ dans le vocabulaire WLIST-BASIC
+: FIND ( c-addr u -- 0 | xt 1 | xt -1 ) 
+	WLIST-TBASIC @ SEARCH-WORDLIST 
+;
+
+\ constantes identifiant le type d'erreur
+-514 CONSTANT ERR-NOT-A-FILE
+-28  CONSTANT ERR-USER-BREAK
+-10 CONSTANT ERR-DIV0
+-9 CONSTANT ERR-BAD-ADDR
+0 CONSTANT ERR-NONE
+1 CONSTANT ERR-SYNTAX
+2 CONSTANT ERR-UNKOWN
+3 CONSTANT ERR-RT-ONLY
+4 CONSTANT ERR-CMD-LINE-ONLY
+5 CONSTANT ERR-MISSING
+6 CONSTANT ERR-NOT-LINE
+7 CONSTANT ERR-MEM-FULL
+9 CONSTANT ERR-QUIT 
 
 \ identifiant d'unitées lexicales 
 0 CONSTANT IDLEX-NULL	\ fin de texte 
 1 CONSTANT IDLEX-LABEL	\ nom de commande ou fonction 
-2 CONSTANT IDLEX-VAR	\ {A..Z} 
-3 CONSTANT IDLEX-ARRAY	\ @ 
-4 CONSTANT IDLEX-INTEGER 
-5 CONSTANT IDLEX-MUL	\ *
-6 CONSTANT IDLEX-DIV	\ /
-7 CONSTANT IDLEX-MOD	\ %
-8 CONSTANT IDLEX-ADD	\ + 
-9 CONSTANT IDLEX-SUB	\ -
-10 CONSTANT IDLEX-EQU 	\ =  
-11 CONSTANT IDLEX-LT  	\ <
-12 CONSTANT IDLEX-LE	\ <=
-13 CONSTANT IDLEX-GT	\ >
-14 CONSTANT IDLEX-GE 	\ >=
-15 CONSTANT IDLEX-NE	\ <>
-16 CONSTANT IDLEX-LPAREN	\ (
-17 CONSTANT IDLEX-RPAREN	\ ) 
-18 CONSTANT IDLEX-SHARP	\ #
-19 CONSTANT IDLEX-COMMA \ , 
-20 CONSTANT IDLEX-SCOL \ ; 
-21 CONSTANT IDLEX-QUOTE \ "
-22 CONSTANT IDLEX-BKSLH \ \
+2 CONSTANT IDLEX-VAR	\ variables {A..Z} 
+3 CONSTANT IDLEX-ARRAY	\ variable tableau @ 
+4 CONSTANT IDLEX-INTEGER \ entier 16 bits
+5 CONSTANT IDLEX-MUL	\ *   multiplication
+6 CONSTANT IDLEX-DIV	\ /   division
+7 CONSTANT IDLEX-MOD	\ %   modulo
+8 CONSTANT IDLEX-ADD	\ +   addition
+9 CONSTANT IDLEX-SUB	\ -   soustraction
+10 CONSTANT IDLEX-EQU 	\ =   = égalité
+11 CONSTANT IDLEX-LT  	\ <   plus petit
+12 CONSTANT IDLEX-LE	\ <=  plus petit ou égal
+13 CONSTANT IDLEX-GT	\ >   plus grand
+14 CONSTANT IDLEX-GE 	\ >=  plus grand ou égal
+15 CONSTANT IDLEX-NE	\ <>  différent 
+16 CONSTANT IDLEX-LPAREN \ (  parenthèse gauche
+17 CONSTANT IDLEX-RPAREN \ )  parenthèse droite
+18 CONSTANT IDLEX-SHARP	\ #   dièse
+19 CONSTANT IDLEX-COMMA \ ,   virgule 
+20 CONSTANT IDLEX-SCOL \ ;    point virgule
+21 CONSTANT IDLEX-QUOTE \ "   guillemets
+22 CONSTANT IDLEX-BKSLASH \ \   barre oblique inversée
 
-\ grandeur des entiers en octets 
+\ grandeur des entiers en octets ( 16 bits )
 2 CONSTANT INTGR-SIZE
 
 \ grandeur du tampon de saisie 
@@ -65,17 +148,10 @@ MARKER KILL-BASIC
 \ tampon ligne de commande 
 CREATE CMD-BUF CMD-BUF-SIZE ALLOT 
 
-\ fin du programme 
-VARIABLE TXT-END 
-
 \ largeur du champ d'impression
+\ peut-être modifié par 'PRINT #n' 
 VARIABLE FIELD-WIDTH 
 6 FIELD-WIDTH !
-
-\ si vrai le dernier lexème n'a pas été utilisé 
-\ est toujours sur la pile.
-VARIABLE saved-lex
-FALSE saved-lex ! 
 
 \ vector permet de creer des variables tableau 1D
 : vector CREATE CELLS ALLOT DOES> SWAP CELLS + ;
@@ -86,8 +162,8 @@ FALSE saved-lex !
 0 CONSTANT LINE-ADDR \ adresse du texte
 1 CONSTANT LINE-LEN  \ longueur du texte en caractères
 
-\ met à jour l'information de src-line
-\ entrées:
+\ initialise src-line
+\ paramètres:
 \   c-addr  adresse de la ligne
 \   u       longueur de la ligne
 : line! ( c-addr u -- )
@@ -99,64 +175,23 @@ FALSE saved-lex !
 \ sortie:
 \   c-addr  adresse de la ligne
 \   u       longueur de la ligne
-: line@
+: line@ ( -- c-addr u )
 	LINE-ADDR src-line @
 	LINE-LEN src-line @
 ;
 
 \ retourne l'adresse de la ligne BASIC
-: line-addr 
+: line-addr ( -- c-addr )
 	LINE-ADDR src-line @
 ;
 
-
-
-\ source pour ligne basic à interpréter
+\ source pour la ligne BASIC à interpréter
 \ information mise à jour par l'analyseur
 \ lexical
 2 vector tb-src 
 
 1 CONSTANT TB-SRC-IN \ adresse dans la chaîne
-2 CONSTANT TB-SRC-CNT \ compte restant 
-
-\ mise à jour de tb-src 
-\ entrées:
-\  c-addr   adresse de la chaîne 
-\  u        longueur de la chaîne
-: tb-src-update ( c-addr u -- )
-	TB-SRC-CNT tb-src ! 
-	TB-SRC-IN tb-src ! 
-;
-
-\ retourne l'adresse du texte 
-\ entrée:
-\    line-addr  adresse de la ligne
-\ sortie:
-\    text-addr  début du texte 
-: text-addr ( line-addr -- text-addr )
-	3 + 
-;
-
-\ retourne la longueur du texte
-\ entrée:
-\   addr    adresse de la ligne
-\ sortie:
-\    len    longueur du texte 
-: text-len ( addr -- len ) 
-	2 + c@ 3 - 
-;
-
-
-\ initialiase tb-sr à 
-\ partir de l'infomration
-\ contenue dans src-line 
-: tb-src-init ( -- )
-	line-addr DUP 
-	text-addr 
-	SWAP text-len 
-	tb-src-update
-;
-
+2 CONSTANT TB-SRC-CNT \ compte caractères restant 
 
 \ sauvegarde c-addr u dans tb-src
 : tb-src! ( c-addr u -- )
@@ -173,6 +208,259 @@ FALSE saved-lex !
 	TB-SRC-CNT tb-src @
 ;
 
+\ saute les espaces entre les lexèmes
+\ met à jour tb-src
+
+: skip-spaces ( -- )
+	tb-src@ DUP IFF
+		BL SKIP 
+		tb-src!
+	ELSE 
+		2DROP 
+	ENDIF 
+; 
+
+\ ********************************
+\ support de débogage seulement
+\ ********************************
+
+\ profondeur de la pile des retours
+: rdepth ( -- u )
+	."  <R:"
+	rp0 @ rp@ - cell / . 
+	." > "
+;
+
+\ affiche no de ligne en 
+\ cours d'interprétation
+: disp-line# 
+    cr ." line# " 
+	line@ drop i@  . .s cr 
+;
+
+\ affiche un numéro indiquant 
+\ la position de la trace 
+\ et le contenu de la pile
+: trace ( n -- )
+	cr
+	[char] ( emit .
+	[char] ) emit
+	.s rdepth 
+;
+
+
+\ **********************************
+
+
+\ ************************************************************
+\
+\     ** Espace mémoire pour le programme tiny BASIC **
+\  
+\  Un programme est une liste de lignes 
+\  interprétée l'une à la suite de l'autre
+\  chaque ligne de texte comprend une entête
+\
+\   champ   | grandeur | description
+\ -------------------------------------------------------------
+\   #ligne  | 2 octets | numéro de ligne en binaire {1..32767}
+\   long.   | 1 octet  | longueur de la ligne inclant l'entête {1..80}
+\   texte   | long.-3  | texte source BASIC  
+\
+\ ************************************************************
+
+\ grandeur du bloc mémoire contenant le programme BASIC
+65536 CONSTANT PROG-MEM-SIZE
+
+\ création du bloc devant 
+\ contenir le texte du programme BASIC 
+CREATE PROG-MEM PROG-MEM-SIZE ALLOT
+
+\ addresse fin du programme
+VARIABLE PROG-END 
+
+\ met à 0 la mémoire PROG-MEM
+: clear-prog-mem ( -- )
+	PROG-MEM PROG-MEM-SIZE 0 FILL
+	PROG-MEM PROG-END !
+;
+
+
+
+\ grandeur entête de ligne source 
+\ dans PROG-MEM 
+3 CONSTANT HEADER-SIZE
+
+\ position des champs dans l'enregistrement ligne
+0 CONSTANT TB-LINE#  \ numéro de ligne en binaire
+2 CONSTANT TB-LN-LEN  \ longueur de la ligne incluant l'entête
+3 CONSTANT TB-TEXT  \ texte BASIC
+
+\ empile la longueur de la ligne
+\ paramètres:
+\    addr    adresse de la ligne 
+\ sortie:
+\    len     longueur de la ligne
+: line-len@ ( addr -- len ) 
+	TB-LN-LEN + C@ 
+;
+
+\ affecte une valeur au champ 
+\  TB-LN-LEN
+\ paramètres:
+\     n+      longueur
+\     addr    adresse de la ligne
+: line-len! ( n+ addr -- )
+	TB-LN-LEN + !
+;
+
+\ retourne l'adresse du texte 
+\ paramètres:
+\    line-addr  adresse de la ligne
+\ sortie:
+\    text-addr  début du texte 
+: text-addr ( line-addr -- text-addr )
+	TB-TEXT + 
+;
+
+\ retourne la longueur du texte
+\ paramètres:
+\   addr    adresse de la ligne
+\ sortie:
+\    len    longueur du texte 
+: text-len ( addr -- len ) 
+	TB-LN-LEN + c@ HEADER-SIZE - 
+;
+
+
+\ initialiase tb-sr à 
+\ partir de l'infomration
+\ contenue dans src-line 
+: tb-src-init ( -- )
+	line-addr DUP 
+	text-addr 
+	SWAP text-len 
+	tb-src!
+;
+
+\ retourne vrai si 
+\ addr < PROG-END 
+\ paramètres:
+\   addr  adresse à vérifier
+\ sortie:
+\   flag  vrai si addr < PROG-END @
+: not-at-end ( addr -- flag ) 
+	PROG-END @ <
+;
+
+\ saute à la ligne BASIC suivante
+\ paramètres:
+\   addr   adresse de la ligne actuelle
+\ sortie:
+\   addr-next  adresse de la ligne suivante
+: skip-to-next-line ( addr -- addr-next )
+	DUP TB-LN-LEN + C@ +
+;
+
+\ recherche une ligne BASIC 
+\ input:
+\    n   numéro ligne recherchée
+\  output:
+\    addr   où la recherche s'est interrompue
+\    flag   vrai si n==line1 à addr 
+: search-line ( n -- addr flag )
+	PROG-MEM
+	TRUE ( boucle tant que vrai) 
+	BEGIN ( n addr loop-flag )
+		OVER not-at-end AND WHILE
+		2DUP i@ SWAP < IFF  
+			skip-to-next-line 
+			TRUE ( n addr TRUE )
+		ELSE 
+			FALSE ( recherche terminée, n<=line# )
+		ENDIF 
+	REPEAT ( n addr )
+	SWAP OVER I@ = 
+; 
+
+
+\ supprime la ligne 
+\ paramètres:
+\    addr  addresse de la ligne 
+: del-line ( addr -- )
+	DUP TB-LN-LEN + C@ ( longueur de la ligne ) 
+	DUP >R
+	OVER + SWAP ( src dest ) 
+	PROG-END @ OVER - ( src dest cnt )
+	CMOVE 
+	PROG-END @ R> - PROG-END !  
+;
+
+\ vérifie s'il y a suffisamment 
+\ d'espace dans PROG-MEM
+\ pour insérer la nouvelle ligne.	 
+: space? ( addr cnt -- ) 
+	+ PROG-MEM PROG-MEM-SIZE +
+	>= IFF ERR-MEM-FULL THROW ENDIF
+;
+
+\ création d'un espace d'insertion
+\ dans PROG-MEM si le point d'insertion
+\ est avant la fin du programme.
+\ paramètres:
+\    pos  	point d'insertion 
+\    size 	grandeur 
+: gap ( pos size -- ) 
+	OVER PROG-END @ < IFF
+		>R 
+		DUP R@ + ( src dest )
+		OVER PROG-END @ SWAP - ( src dest cnt )
+		2DUP space?
+		CMOVE> 
+		PROG-END @ R> + PROG-END !
+	ELSE 
+		PROG-END @ + PROG-END ! 
+		DROP
+	ENDIF 
+;
+
+\ enregistre le numéro de ligne
+\ paramètres:
+\ 	llen	longueur de la ligne
+\   n		numéro de ligne
+\   addr    address entête ligne 
+: line-header! ( llen n addr  -- addr-tb-text )
+	DUP -ROT I!
+	TB-LN-LEN + DUP -ROT C!
+	1+ ( champ TB-TEXT )
+;
+
+\ insère une ligne de code dans PROG-MEM 
+\ paramètres:
+\   n   	numéro de la ligne à insérer 
+\   addr	point d'insertion  
+: insert-line ( n addr  -- )
+	DUP tb-src@ 2>R  R@ HEADER-SIZE + DUP >R  gap  
+	R> -ROT line-header! ( champ TB-LINE# ) 
+	2R> ROT SWAP CMOVE ( copie du texte, champ TB-TEXT ) 
+; 
+
+\ Ajoute la ligne pointée par tb-src à PROG-MEM 
+\ paramètres:
+\	n		numéro de la ligne 
+: add-line ( n  -- )
+	DUP search-line  \ est-ce que ce no de line existe ?
+	IFF ( ligne existante ) 
+		DUP del-line ( supprime l'existante ) 
+	ENDIF 
+	tb-src@ SWAP DROP 
+	IFF insert-line ( n addr -- ) ENDIF 
+;
+
+\ *********************************************************
+
+\ vecteur permettant de 
+\ sauvegarder le contexte
+\ voir command STOP
 4 vector stop-context 
 \ champ de stop-context 
 0 CONSTANT STOP-SRC-ADDR 
@@ -204,6 +492,11 @@ FALSE saved-lex !
 	tb-src!
 ;
 
+\ si vrai le dernier lexème retiré par 'next-lex' 
+\ n'a pas été utilisé 
+\ et a été sauvegardé dans 'ungot-lex'
+VARIABLE saved-lex
+FALSE saved-lex ! 
 
 \ lexème remis en banque
 3 vector ungot-lex 
@@ -220,7 +513,7 @@ FALSE saved-lex !
 		UNGOT-ADDR ungot-lex ! 
 		TRUE saved-lex !
 	ELSE
-		2DROP 
+		2DROP
 		FALSE saved-lex !
 	ENDIF 
 ;
@@ -237,75 +530,111 @@ FALSE saved-lex !
 	ENDIF 
 ;
 
+\ mot pour créer des table d'entiers 16 bits
+\ usage: INT16-ARRAY ( n -- ) nom-table
+: INT16-ARRAY CREATE INTGR-SIZE * ALLOT ( 'cccc' )  
+	DOES> ( u addr -- addr+2*n ) SWAP INTGR-SIZE * + ;
 
-: INT16-ARRAY CREATE INTGR-SIZE * ALLOT DOES> SWAP INTGR-SIZE * + ;
 
-: FOR-STACK-ARRAY CREATE 4 * CELLS ALLOT DOES> SWAP 4 * CELLS + ;
+
+\ profondeur d'imbrication pile de contrôle
+variable cstack-ptr 
+-1 cstack-ptr !  \ pile vide
+
+\ mot pour créer la pile de contrôle utilisée 
+\ par les boucles 'FOR ... NEXT'
+\ et les GOSUB | RETURN
+: CSTACK-ARRAY  CREATE 4 * CELLS ALLOT 
+	DOES> ( u addr -- addr+4*n*8 ) cstack-ptr @ 4 * ROT + CELLS + ;
   
-\ FOR..NEXT stack
-8 FOR-STACK-ARRAY for-stack 
-\ champs d'une cellule for-stack 
+\ pile de contrôle, 16 niveaux.
+16 CSTACK-ARRAY cstack 
+\ champs d'une cellule cstack pour les FOR...NEXT
 0 CONSTANT FOR-LIMIT 
 1 CONSTANT FOR-STEP 
 2 CONSTANT LOOP-IN 
 3 CONSTANT LOOP-CNT 
+\ champs d'une cellule cstack pour les GOSUB... RETURN
+0 CONSTANT RET-LN-ADDR 
+1 CONSTANT RET-LN-LEN 
+2 CONSTANT RET-SRC-IN
+3 CONSTANT RET-SRC-CNT 
 
-variable for-depth 
--1 for-depth !  \ pile vide
+\ appellé par GOSUB pour 
+\ sauvegarder le contexte 
+\ de retour de sous-routine
+: push-branch-context ( -- ) 
+	1 cstack-ptr +!
+	line@ RET-LN-LEN cstack !
+	RET-LN-ADDR cstack !
+	tb-src@
+	RET-SRC-CNT cstack !
+	RET-SRC-IN cstack !
+;
+
+\ appellé par RETURN pour
+\ retourné au point d'appel 
+\ de la sous-routine
+: pop-branch-context ( -- )
+	RET-LN-ADDR cstack @
+	RET-LN-LEN cstack @   
+	line!
+	RET-SRC-IN cstack @
+	RET-SRC-CNT cstack @  
+	tb-src!
+	-1 cstack-ptr +! 
+;
+
 
 \ initialise limite
 \ appellé par TO 
 : limit! ( limit -- )
-	for-depth @ 
-	for-stack FOR-LIMIT CELLS + !
+	FOR-LIMIT cstack !
 ;
 
 \ appellé par NEXT
 : limit@ ( -- limit )
-	for-depth @ 
-	for-stack FOR-LIMIT CELLS + @
+	FOR-LIMIT cstack @
 ;
 
 \ initilialise la limite
-\ appellé  par TO|STEP
+\ appellé  par TO et STEP
 : step! ( step -- )
-	for-depth @ 
-	for-stack FOR-STEP CELLS + !
+	FOR-STEP cstack ! 
 ;
 
+\ empile l'incrément
 \ appellé par NEXT 
 : step@ ( -- step )
-	for-depth @ 
-	for-stack FOR-STEP CELLS + @
+	FOR-STEP cstack @ 
 ;
 
 \ initialise le point de branchement
 \ pour NEXT 
-: loop-back! ( src-in src-cnt -- )
-	for-depth @
-	for-stack DUP >R
-	LOOP-CNT CELLS + !
-	R> LOOP-IN CELLS + !
+\ appellé par TO et STEP
+: loop-back-save ( -- )
+	tb-src@
+	LOOP-CNT cstack !
+	LOOP-IN cstack !
 ;
 
 \ appellé par NEXT 
 \ pour boucler au début du FOR..NEXT
-: loop-back (  -- )
-	for-depth @
-	for-stack DUP >R
-	LOOP-IN CELLS + @
-	R> LOOP-CNT CELLS + @
-	tb-src-update
+: loop-back-restore (  -- )
+	LOOP-IN cstack @
+	LOOP-CNT cstack @
+	2DUP tb-src! line!
 ;
+
 
 \ variables booléennes
 VARIABLE flags 
 0 flags !
 
-\ constantes drapeaux
-1 CONSTANT FRUN 
-2 CONSTANT FSTOP 
-4 CONSTANT FLINE-DONE 
+\ bits des drapeaux
+1 CONSTANT FRUN   ( 1<<0)
+2 CONSTANT FSTOP  ( 1<<1)
+4 CONSTANT FLINE-DONE ( 1<<2)
 
 \ lève le drapeau
 : set-flag ( drapeau -- )
@@ -325,61 +654,63 @@ VARIABLE flags
 ;
 
 
-\ array of tiny BASIC variables A..Z 
+\ tableau des variables tiny BASIC {A..Z} 
 26 	INT16-ARRAY tb-vars 
 
-\ grandeur du tampon contenant le programme BASIC
-65536 CONSTANT PROG-MEM-SIZE 
-CREATE PROG-MEM PROG-MEM-SIZE ALLOT
-\ format des lignes BASIC:
-\   no de ligne entier 16 bits 
-\   longueur ligne incluant le no de ligne 1 octet
-\   texte BASIC à interpréter 
-
-\ addresse fin du programme
-VARIABLE PROG-END 
-PROG-MEM PROG-END !
-
-
-\ table '@' 
-\ taill2 256 entiers
+\ tableau '@' 
+\ taille 256 entiers
 256 INT16-ARRAY at-array 
 
-\ constantes identifiant le type d'erreur
-0 CONSTANT ERR-NONE
-1 CONSTANT ERR-SYNTAX
-2 CONSTANT ERR-UNKOWN
-3 CONSTANT ERR-RT-ONLY
-4 CONSTANT ERR-CMD-LINE-ONLY
-5 CONSTANT ERR-MISSING
-6 CONSTANT ERR-NOT-LINE
-9 CONSTANT ERR-QUIT 
+\ vide la pile des arguments
+: preset ( i*x -- )
+	sp0 @ sp!
+;
 
+\ affiche la ligne BASIC
+\ entrée:
+\    addr   addresse de la ligne
+: list-line ( addr -- )
+	CR DUP I@ 5 .R SPACE 
+	TB-LN-LEN + DUP C@ HEADER-SIZE - SWAP 
+	1+ SWAP TYPE 
+;
+
+
+\ affiche le numoro de la ligne
 \ rapporte les erreurs 
 \ et vide la pile des arguments
-: error ( i*x n -- )
-	?DUP IFF 
-		CR ." erreur: " DUP . CR 
+\ paramètres:
+\   n           code d'erreur
+: error ( n -- )
+	?DUP IFF
+		CR ." erreur: " DUP >R . CR 
 		line@
 		FRUN test-flag IFF
-			swap 3 + swap 3 -
-		ENDIF 
-		tb-src@ SWAP DROP - 
-		DUP >R TYPE
-		CR R> SPACES [CHAR] ^ EMIT CR
+			OVER list-line
+			CR 6 SPACES
+			HEADER-SIZE - 
+		ELSE
+			2DUP TYPE CR
+		ENDIF
+		SWAP DROP  
+		tb-src@ SWAP DROP - 1- 
+		SPACES [CHAR] ^ EMIT CR  R>
 		CASE
 			ERR-SYNTAX OF ." Erreur de syntaxe." ENDOF 
-			ERR-UNKOWN OF ." Commane inconnue." ENDOF
+			ERR-UNKOWN OF ." Commande inconnue." ENDOF
 			ERR-CMD-LINE-ONLY OF ." Ne peut-être utilisé que sur la ligne de commande." ENDOF
 			ERR-RT-ONLY OF ." Ne peut-être utilisé que dans un programme." ENDOF
 			ERR-MISSING OF ." Argument manquant." ENDOF
 			ERR-NOT-LINE OF ." Aucune ligne ne porte ce numéro." ENDOF
-			-514 OF ." Fichier inexistant." ENDOF 
-			-28 OF ." Programme interrompu par l'utilisateur." ENDOF 
+			ERR-MEM-FULL OF ." mémoire insuffisante." ENDOF 
+			ERR-DIV0 OF ." division par zéro." ENDOF 
+			ERR-BAD-ADDR OF ." adresse invalide." ENDOF 
+			ERR-NOT-A-FILE OF ." Fichier inexistant." ENDOF 
+			ERR-USER-BREAK OF ." Programme interrompu par l'utilisateur." ENDOF 
 		ENDCASE 
-		sp0 @ sp! \ vide la pile 
 		0 flags !
-		-1 for-depth ! 
+		-1 cstack-ptr ! 
+		preset \ vide la pile 
 	ENDIF  
 ;
 
@@ -402,72 +733,43 @@ PROG-MEM PROG-END !
 	ENDIF
 ;
 
-\ empile un entier de 16 bits 
-\ à partir de la mémoire 
-\ entrée:
-\ 	addr  addresse à lire
-\ sortie:
-\     n   entier lue
-: I@ ( addr -- n )
-	DUP C@ 256 * 
-	SWAP 1+ C@ +
-; 
-
-\ dépose un entier 16 bits en mmémoire 
-\ entrées:
-\	n		entier à déposer
-\	addr	addresse destination
-: I! ( n addr -- ) 
-	DUP 2 PICK 
-	8 RSHIFT SWAP C!
-	1+ C!
-;
-
 \ retourne l'adresse de la variable 
 \ dans le tableau tb-vars
-: var-addr ( c -- idx )
+\ paramètres:
+\   c    caractère nom de la variable
+\ sortie:
+\   addr    addresse de la variable
+: var-addr ( c -- addr )
 	TOUPPER 
 	[CHAR] A - tb-vars
 ;
 
-\ affiche le nom de la variable
-\ entrée:
-\ 	var-addr   addresse de la variable
+\ retourne le nom de la variable
+\ paramètres:
+\ 	addr   addresse de la variable
 \ sortie:
 \	c       nome de la variable {'A'..'Z'}
-: var-name ( var-addr -- c )
-	0 tb-vars SWAP - 
+: var-name ( addr -- c )
+	0 tb-vars - 
 	 2/
 	[CHAR] A +
-;
-
-
-\ Si le bit 15 == 1
-\ étend le signe de l'entier sur 
-\ sur le nombre de bits des entiers
-\ du système, i.e 32 ou 64 bits. 
-: sign-extend ( u16 -- i16 )
-	DUP 32767 > IFF
-		-1 $ffff - OR 
-	ENDIF 
 ;
 
 \ retourne la valeur de la variable 
 : var@ ( c -- n ) 
 	var-addr 
-	I@ sign-extend
+	I@
 ; 
 
 \ affecte une valeur à la variable 
 : var! ( n c -- ) 
-	var-addr
-	I!
+	var-addr I!
 ;
 
 \ retourne la valeur du tableau 
 \ à l'index i 
 : @@ ( i -- n )
-	at-array I@ sign-extend 
+	at-array I@
 ;
 
 \ affecte une valeur au tableau 
@@ -476,32 +778,8 @@ PROG-MEM PROG-END !
 	at-array I!
 ;
 
-\ retourne faux si 
-\ addr >= PROG-END 
-: not-at-end ( addr -- flag ) 
-	PROG-END @ <
-;
-
-\ saute les espaces entre les lexèmes
-\ dans tb-src
-: skip-spaces ( -- src-in src-cnt)
-	tb-src@  DUP IFF
-		BL SKIP 
-		2DUP tb-src-update
-	ENDIF 
-; 
-
-\ saute à la ligne BASIC suivante
-\ entrée:
-\   addr   adresse de la ligne actuelle
-\ sortie:
-\   addr-next  adresse de la ligne suivante
-: skip-to-next-line ( addr -- addr-next )
-	DUP 2 + C@ +
-;
-
 \ lit une commande du clavier
-\ entrées:
+\ paramètres:
 \   buf    adresse tampon de saisie
 \   size   longueur du tampons en octets
 \ sortie:
@@ -511,100 +789,6 @@ PROG-MEM PROG-END !
 	OVER >R 
 	ACCEPT CR
 	R> SWAP 
-;
-
-\ recherche une ligne BASIC 
-\ input:
-\    n   numéro ligne recherchée
-\  output:
-\    addr   addresse de ligne ou point d'insertion
-\      f    trouvé ou pas
-: search-line ( n -- n addr f )
-	-1 ( loop flag ) PROG-MEM 
-	BEGIN ( n f addr )
-		DUP not-at-end ROT AND WHILE
-		DUP >R 
-		I@ OVER < IFF  
-			R> skip-to-next-line 
-			-1 SWAP  ( n -1 addr )
-		ELSE 
-			R> 0 SWAP ( n 0 addr )
-		ENDIF 
-	REPEAT
-	DUP not-at-end IFF 
-		DUP I@  ( n addr ln# )
-		2 PICK = 
-	ELSE
-		FALSE
-	ENDIF
-; 
-
-\ supprime la ligne 
-\ entrée:
-\    addr  addresse de la ligne 
-: del-line ( addr -- )
-	DUP 2 + C@ ( longueur de la ligne ) 
-	DUP >R
-	OVER + SWAP ( src dest ) 
-	PROG-END @ OVER - ( src dest cnt )
-	CMOVE 
-	PROG-END @ R> - PROG-END !  
-;
-
-\ vérifie s'il y a suffisamment 
-\ d'espace dans PROG-MEM	 
-: space? ( addr cnt -- ) 
-	+ PROG-MEM PROG-MEM-SIZE +
-	>= IFF ABORT" mémoire insuffisante" ENDIF
-;
-
-\ création d'un espace d'insertion
-\ dans PROG-MEM 
-\ input:
-\    pos  point d'insertion 
-\    size grandeur 
-: gap ( pos size -- ) 
-	>R 
-	DUP R@ + ( src dest )
-	OVER PROG-END @ SWAP - ( src dest cnt )
-	2DUP space?
-	CMOVE> 
-	PROG-END @ R> + PROG-END ! 
-;
-
-
-\ insère une ligne de code dans PROG-MEM 
-\ input:
-\   tb-src   ligne à insérée 
-\   addr	 point d'insertion  
-: insert-line ( no-line addr ln-addr ln-cnt -- )  
-	2>R DUP PROG-END @ < IFF
-		DUP R@ 3 + gap ( no-ligne addr addr size -- no-ligne addr )
-	ELSE
-		PROG-END @
-		R@ + 3 + PROG-END !
-	ENDIF
-	SWAP OVER I!
-	2 + R@ 3 + OVER C! 
-	1+ 2R> ROT SWAP CMOVE 
-; 
-
-\ copie src-line dans PROG-MEM 
-\ le numéro de ligne est recherché 
-\ dans PROG-MEM, si ce no de ligne
-\ existe déjà src-line remplace 
-\ la ligne existante sinon
-\ la nouvelle ligne est insérée 
-\ dans l'ordre numérique.
-\ une ligne vide existante est supprimée. 
-: save-line ( no-ligne -- )
-	search-line
-	IFF DUP del-line ENDIF
-	skip-spaces ( n addr src-in src-cnt ) DUP IFF
-		insert-line 
-	ELSE 
-		2DROP 2DROP 
-	ENDIF 
 ;
 
 \ extrait le prochain caractère 
@@ -620,23 +804,27 @@ PROG-MEM PROG-END !
 	ELSE 
 		0 
 	ENDIF
-	>R tb-src-update R>  
+	>R tb-src! R>  
 ; 
 
 \ restitue le dernier caractère retiré.
 \ modifie tb-src
-\ entrée:
+\ paramètres:
 \	c   dernier carctère retourné par next-char
 : unget-char ( c --  )
 	IFF 
 		tb-src@
 		1+ SWAP 1- SWAP
-		tb-src-update
+		tb-src!
 	ENDIF
 ; 
 
 \ retourne vrai si 
 \ c est une lettre
+\ paramètres:
+\    c    caractère à vérifié
+\ sortie:
+\    f     VRAI|FAUX
 : alpha? ( c --  f )
 	TOUPPER DUP
 	[CHAR] A >= 
@@ -646,6 +834,10 @@ PROG-MEM PROG-END !
 
 \ retourne vrai si 
 \ c est un chiffre decimal
+\ paramètres:
+\    c    caractère à vérifié
+\ sortie:
+\    f     VRAI|FAUX
 : digit? ( c -- f )
 	DUP [CHAR] 0 >=
 	SWAP [CHAR] 9 <= 
@@ -654,6 +846,10 @@ PROG-MEM PROG-END !
 
 \ autres charactères acceptés 
 \ dans les noms {'.','?','_'}
+\ paramètres:
+\    c    caractère à vérifié
+\ sortie:
+\    f     VRAI|FAUX
 : other-valid? ( c-- f )
 	DUP [CHAR] . = SWAP 
 	DUP [CHAR] ? = SWAP 
@@ -661,14 +857,23 @@ PROG-MEM PROG-END !
 	OR OR
 ;
 
+\ retourne vrai si le caractère 
+\ est accepté dans un nom de commande
+\ paramètres:
+\    c    caractère à vérifié
+\ sortie:
+\    f     VRAI|FAUX
 : name-char? ( c -- f )
 	DUP alpha? SWAP DUP digit? 
 	SWAP other-valid? OR OR 
 ;
 
-
 \ convertie la chaîne en majuscules
 \ in situ.
+\ paramètres:
+\   c-addr u   chaîne à convertir
+\ sortie:
+\   c-addr u   chaîne en majuscules
 : UPPER ( c-addr u -- c-addr u ) 
 	2DUP 
 	BEGIN 
@@ -683,13 +888,13 @@ PROG-MEM PROG-END !
 
 defer valid-char?
 
-\ extrait un nom du texte 
-\ entrées:
+\ avance le pointeur de texte 
+\ jusqu'au prochain caractère non valide 
+\ paramètres:
 \ 	tb-src  texte à analyser 
 \           modifié par next-char|unget-char
 \ sorties:
 \ 	c-addr  position après le lexème 
-
 : scan-lexem ( -- c-addr )
 	BEGIN 
 		next-char 
@@ -720,16 +925,15 @@ defer valid-char?
 	>R 
 	tb-src@ R> SCAN 
 	1- SWAP 1+ SWAP
-	tb-src-update 
+	tb-src! 
 ;
 
 \ extrait les autres types d'unité lexicales 
-\ entrées:
-\	c-addr u   texte source
+\ paramètres:
+\	c        premier caractère du lexème
 \ sortie: 
 \	IDLEX-*   identifiant type lexème 
-\   c-addr2 u2  texte après le lexème 
-: scan-other ( c -- c-addr u idlex )
+: scan-other ( c -- idlex )
 	CASE
 	[CHAR] * OF IDLEX-MUL ENDOF 
 	[CHAR] / OF IDLEX-DIV ENDOF 
@@ -758,7 +962,7 @@ defer valid-char?
 				ENDIF 
 			ENDIF 
 	ENDOF
-	[CHAR] \ OF IDLEX-BKSLH ENDOF 
+	[CHAR] \ OF IDLEX-BKSLASH ENDOF 
 	[CHAR] ? OF IDLEX-LABEL ENDOF 
 	[CHAR] @ OF IDLEX-ARRAY ENDOF	
 	[CHAR] # OF IDLEX-SHARP ENDOF
@@ -782,7 +986,7 @@ defer valid-char?
 \ vérifie s'il s'agit d'un nom de commande ou variable
 \ retourne l'adresse de la variable ou le pointeur de 
 \ la chaîne comptée.
-\ entrées:
+\ paramètres:
 \   c-addr u   chaîne extraite 
 \ sortie:
 \     c-addr u IDLEX-LABEL | var-addr 0 IDLEX-VAR 
@@ -796,28 +1000,28 @@ defer valid-char?
 ;
 
 \ convertie la chaîne en entier 
-: atoi16 ( c-addr u -- n )
+: atoi16 ( c-addr u -- i16 )
 	2>R 0. 2R> >NUMBER 
 	2DROP DROP
-	$FFFF AND 
 	sign-extend  
 ; 
 
-\ convertie la chaîne en entier 
+\ convertie la chaîne en entier
+\ et ajoute l'identifiant du lexème
 : int-value ( c-addr u -- n 0 IDLEX-INTEGER )
 	atoi16 0 IDLEX-INTEGER 
 ;
 
 \ extrait le prochain lexème
-\ entrée:
+\ paramètres:
 \  tb-src  chaîne comptée à analyser
 \          mis à jour par le scanner
 \ sortie:
 \  lex-val IDLEX  valeur du lexème et son identifiant.
 \  IDLEX-NULL     analyse tb-src complétée.
-: next-lex (  --  [lex-val IDLEX | IDLEX-NULL] )   
+: next-lex (  --  [lex-val IDLEX | 0 0 IDLEX-NULL] )   
 	ungot@ ?DUP 0= IFF 
-		skip-spaces ( -- src-in src-cnt )
+		skip-spaces tb-src@ ( -- addr u )
 		DUP 0> IFF  
 			DROP >R  \ R: adresse début lexème
 			next-char DUP alpha? IFF 
@@ -844,14 +1048,13 @@ defer valid-char?
 	ENDIF
 ; 
 
-
 \ vérifie si le lexème suivant
 \ correspond à celui attendue 
 \ termine avec erreur si ce n'est pas le cas
-\ entrée:
+\ paramètres:
 \    idlex   identifiant lexème attendue
 \ sortie:
-\   val-lo val-hi idlex  paramètres du lexème 
+\   val-lo val-hi idlex  lexème accepté
 : expect ( idlex -- val-lo val-hi idlex )
 	>R  
 	next-lex R@
@@ -865,6 +1068,8 @@ defer valid-char?
 
 \ le prochain lexème 
 \ doit-être '('
+\ termine avec erreur 
+\ si ce n'est pas le cas.
 : expect-( ( -- )
 	IDLEX-LPAREN expect
 	DROP 2DROP
@@ -872,12 +1077,14 @@ defer valid-char?
 
 \ le prochain lexème
 \ doit-être ')'
+\ termine avec erreur 
+\ si ce n'est pas le cas.
 : expect-) 
 	IDLEX-RPAREN expect
 	DROP 2DROP
 ;
 
-defer relation 
+defer relation
 
 \ évaluation d'un facteur
 \ factor ::= ['-'|'+']integer |
@@ -894,7 +1101,7 @@ defer relation
 		at-array i@ 
 	ENDOF
 	IDLEX-LABEL OF
-		sfind IFF
+		find IFF
 			execute
 		ELSE
 			ERR-UNKOWN THROW
@@ -906,6 +1113,7 @@ defer relation
 	ENDOF
 	SWAP
 	ENDCASE 
+	sign-extend
 ;
 
 \ premier facteur du terme
@@ -953,8 +1161,8 @@ defer relation
 	BEGIN
 		next-lex 
 		dup IDLEX-ADD = OVER IDLEX-SUB = OR WHILE
-		>R 2DROP 
-		term 
+		>R 2DROP
+		term
 		2R> >R SWAP R>
 		IDLEX-ADD = IFF 
 			+
@@ -964,20 +1172,21 @@ defer relation
 		>R
 	REPEAT 
 	ungot!
-	R> 
+	R>
 ;
 
-\ évaluation d'une comparaison  
-\ relation ::= expression [ relop expression ]
-\ relop ::= '>'|'<'|'='|'<>'|'>='|'<='
+\ définition diférée de 'relation'
+\ évaluation d'une relation de comparaison
+\ forme d'une relation:  expr [ op-rel expr ]
+\ op-rel -> { '=','>','>=','<','<=','<>' }  
 : rel (  -- n )
-	expression 
+	expression
 	>R 
 	next-lex 
 	DUP IDLEX-EQU >= OVER IDLEX-NE <= AND IFF 
 		>R 2DROP
 		expression 
-		2R> >R SWAP R>
+		2R> SWAP -ROT 
 		CASE 
 		IDLEX-EQU OF = ENDOF 
 		IDLEX-LT OF < ENDOF 
@@ -989,12 +1198,13 @@ defer relation
 		ENDCASE
 	ELSE  
 		ungot!
-		R> $FFFF AND sign-extend
+		R> sign-extend
 	ENDIF
 ; 
 
 ' rel is relation 
 
+\ BASIC: LET @(expr)=relation
 \ affecte une valeur 
 \ au tableau @
 : let-array (  -- )
@@ -1008,12 +1218,14 @@ defer relation
 	SWAP I!
 ; 
 
+\ BASIC: LET var=relation
 \ affecte une valeur 
 \ à une variable A..Z 
 : let-var ( var-addr -- )
 	IDLEX-EQU expect
-	DROP 2DROP
-	relation $FFFF AND SWAP I!
+	DROP 2DROP 
+	relation 
+	$FFFF AND SWAP I! 
 ; 
 
 \ passe à la ligne suivante
@@ -1025,50 +1237,50 @@ defer relation
 	tb-src-init
 ; 
 
-
 \ execute la ligne tiny-basic
 : line-eval (  -- )
 	FLINE-DONE clear-flag 
 	BEGIN
-	next-lex
-	DUP WHILE 
-		DUP IDLEX-LABEL = IFF
-			DROP sfind \ doit-être un nom de cmd 
+	FLINE-DONE test-flag 0= 
+	WHILE 
+		next-lex
+		CASE 
+		IDLEX-NULL OF 2DROP FLINE-DONE set-flag ENDOF
+		IDLEX-LABEL OF 
+			find \ doit-être un nom de cmd 
 			IFF 
 				execute
 			ELSE 
 				ERR-UNKOWN THROW  
 			ENDIF
-		ELSE IDLEX-SCOL = IFF
-			2DROP 
-			ELSE
-				ERR-SYNTAX THROW
-			ENDIF  
-		ENDIF
+		ENDOF 
+		IDLEX-SCOL OF 2DROP ENDOF 
+		ERR-SYNTAX THROW
+		ENDCASE 
 	REPEAT 
-	DROP 2DROP 
 ;
 
-\ for debug only
-: disp-line# 
-    cr ." line#" 
-	line@ drop i@ . cr 
-;
 
 \ saisie d'une expression et
 \ sauvegarde sa valeur dans
 \ la variable
-\ entrée:
+\ paramètres:
 \ 	var-addr   addresse de la  variable
-: input-expression ( var-addr -- )
+: user-input ( var-addr -- )
 	\ sauvegarde du contexte
 	line@ 2>R
 	tb-src@ 2>R
 	HERE CMD-BUF-SIZE ALLOT \ alloue un tampon de saisie
 	CMD-BUF-SIZE read-cmd-line 
 	2DUP line! 
-	tb-src-update
-	rel
+	tb-src!
+	next-char 
+	DUP alpha? IFF 
+		TOUPPER
+	ELSE 
+		unget-char
+		rel
+	ENDIF 
 	SWAP I! 
 	\ restauration du contexte 
 	2R>
@@ -1078,12 +1290,12 @@ defer relation
 	CMD-BUF-SIZE NEGATE ALLOT \ libère le tampon de saisie
 ;
 
-\ ligne cible pour GOTO|GOSUB
-: parse-target ( -- addr )
+\ analyse le texte pour obtenir
+\ la ligne cible d'un GOTO ou GOSUB
+: parse-target ( -- addr u )
 	next-lex IDLEX-INTEGER = IFF 
-		DROP search-line IFF  
-			SWAP DROP \ drop line#
-			DUP 2 + C@
+		DROP search-line IFF  ( addr )
+			DUP TB-LN-LEN + C@  ( addr u )
 		ELSE 
 			ERR-NOT-LINE THROW 
 		ENDIF 
@@ -1110,19 +1322,44 @@ defer relation
 	ABSS 
 ; 
 
-\ BASIC KEY var
+\ BASIC: ASC(letter)
+\ retourne le code ASCII 
+\ d'un caractère
+: ASC ( -- n )
+	expect-(
+	next-char
+	expect-)
+;
+
+
+\ BASIC: KEY var
+\ attend que l'utilisateur
+\ enfonce une touche et 
+\ sauvegarde sa valeur dans
+\ la variable
 : KEY ( -- c )
 	IDLEX-VAR expect 
 	2drop 
 	KEY SWAP I!
 ;
 
+\ BASIC: KEY?
+\ retourne vrai si une touche
+\ a été enfoncée
 : KEY? ( -- f )
 	KEY?
 ;
 
+\ BASIC: MSEC
+\ temps système en millisecondes
+\ la valeur retournée est modulo 65536
+: MSEC ( -- msec )
+	utime drop 1000 /
+	$FFFF AND 
+;
+
 \ BASIC: NOT relation
-\ négation logique
+\ négation logique d'une relation
 : NOT ( -- f )
 	relation 
 	0= 
@@ -1130,87 +1367,90 @@ defer relation
 
 \ BASIC: RND(expr) 
 \ retourne un entier aléatoire 
-\ entre [1..expr]
+\ dans l'interval {1..expr}
 : RND ( -- u )
-	expect-(
-	expression
+	expect-( 
+	expression 
 	expect-)
 	ABSS RANDOM 1+
 ; 
-
 
 \ *********************
 \ commandes tiny BASIC 
 \ *********************
 
-\ BASIC: END 
-\ termine l'exécution du programme
-: END 
-	run-time-only
-	0 flags !
-	FLINE-DONE flags ! 
+\ BASIC: BEEP
+\ emit un son court 
+: BEEP 
+	7 EMIT
+	125 MS 
 ;
 
+\ BASIC: END 
+\ termine l'exécution du programme
+: END ( -- )
+	run-time-only
+	tb-src@ + 0
+	FRUN clear-flag 
+;
+
+\ déclaration pour la définition 
+\ différée de la commande LET
 defer LET 
+
+\ BASIC: FOR var=expr TO expr [STEP expr]
 \ initialisation boucle FOR..NEXT 
 \ syntaxe: FOR var=expr 
-: FOR 
+: FOR ( -- )
 	LET \ initialise la variable de contrôle
-	1 for-depth +! \ incrément la profondeur de boucle
+	1 cstack-ptr +! \ incrémente la profondeur de boucle
 ; 
 
+\ BASIC: GOSUB n 
 \ appel de sous-routine 
-\ syntaxe: GOSUB expr
-\ expr doit résulté en 
-\ un numéro de ligne existant
-: GOSUB 
-	run-time-only
-	r>
-	parse-target
-	line@
-	2>r
-	tb-src@ 
-	2>R
-	line!
+\ 'n' est le numéro de ligne
+\ où débute la sous-routine
+: GOSUB ( -- )
+	run-time-only 
+	parse-target 
+	push-branch-context 
+	line! 
 	tb-src-init
-	>r
 ; 
 
+\ BASIC: GOTO n
 \ saut inconditionnel 
-\ syntaxe: GOTO expr
-\ expr doit résulté en 
-\ un numéro de ligne existant
-: GOTO 
+\ 'n'est le numéro de 
+\ ligne où doit continuer
+\ l'exécution du programme.
+: GOTO ( -- )
 	run-time-only
 	parse-target
 	line! 
 	tb-src-init 
 ; 
 
-\ information sur le programme.
-: HI 
+\ Affiche  l'information sur le programme.
+: HI ( -- )
     CR
     ." -------------------------------------" CR 
 	." Tiny BASIC V1.0" CR
 	." Copyright Jacques Deschenes, 2022" CR
 ;
 
+\ BASIC: IF relation THEN liste-commandes
 \ exécution conditionnel
-\ des commande qui suivent 
+\ des commandes qui suivent 
 \ l'expression si celle-ci 
 \ est vrai 
-\ syntaxe: IF relation cmd , cmd ...  
-: IF ( -- )
-	relation
-	0= IFF 
-	 tb-src@ + 0
-	 tb-src-update
-	ENDIF 
+\ sortie:
+\     n    laissé sur la pile pour THEN
+: IF ( -- n )
+	relation 
 ;
 
-\ saisie d'une chaîne de caractère
-\ syntaxe: INPUT var [,var]* |
-\          INPUT "chaine"var [,"chaine"var]* 
+\ BASIC: INPUT [chaîne]var [,[chaîne]var]*
+\ saisie d'une valeur par l'utilisateur
 : INPUT ( -- c-addr )
 	TRUE
 	BEGIN WHILE
@@ -1219,13 +1459,13 @@ defer LET
 		IDLEX-QUOTE OF
 			DROP TYPE
 			IDLEX-VAR expect
-			2DROP input-expression
+			2DROP  user-input
 			TRUE 
 		ENDOF 
 		IDLEX-VAR OF
 			2DROP DUP
 			var-name EMIT [CHAR] : EMIT 
-			input-expression
+			user-input
 			TRUE 
 		ENDOF
 		IDLEX-COMMA OF DROP 2DROP TRUE ENDOF
@@ -1235,6 +1475,7 @@ defer LET
 	REPEAT
 ; 
 
+\ définition différée de LET
 \ BASIC: LET var=expr [, var=expr]*
 \ affectation d'une variable 
 : _LET ( -- )
@@ -1246,7 +1487,7 @@ defer LET
 			DROP 2DROP 
 			let-array 
 		ELSE 
-			IDLEX-VAR = IFF
+			IDLEX-VAR = IFF 
 				DROP let-var 
 			ELSE
 				ERR-SYNTAX THROW
@@ -1255,46 +1496,49 @@ defer LET
 		next-lex 
 		DUP IDLEX-COMMA = IFF 
 			DROP 2DROP TRUE 
-		ELSE 
+		ELSE
 		    ungot! FALSE 
 		ENDIF
-	REPEAT  
+	REPEAT 
 ;
 
 ' _LET is LET 
 
+\ BASIC: LIST [n]
 \ listing du programme 
-\ syntaxe: LIST 
+\ 'n' est un numéro de ligne optionnel
+\ à partir duquel commence le listing
 : LIST ( -- )
 	cmd-line-only 
 	next-lex DUP IDLEX-INTEGER = IFF
 		2DROP ( -- start-line# ) 
+		>R ( le listing débute à ce numéro )
 	ELSE
 		ungot!
-		1 ( -- start-line# ) 
+		1 >R  ( liste à partir du début )
 	ENDIF
 	PROG-MEM 
 	BEGIN
 		DUP PROG-END @ < WHILE 
-			DUP I@ DUP 3 PICK  >= IFF
-				5 .R SPACE 
-				DUP 2 + COUNT DUP >R 3 - TYPE CR
-				R> +
-			ELSE 
-			   DROP DUP 2 + C@ + 
-			ENDIF  
+		DUP I@ R@  >= IFF
+			DUP list-line 
+		ENDIF 
+		DUP TB-LN-LEN + C@ +
 	REPEAT
-	2DROP
+	R> 2DROP
 ;  
  
-\ interpréteur Tiny BASIC
+\ déclaration pour la définition
+\ différée de l'interpréteur Tiny BASIC
 defer tb-eval
 
-\ commande BASIC 
+\ déclaration pour la définition différée
+\ de la commande BASIC 'NEW' 
 defer NEW 
 
-\ charge fichier programme 
-\ syntaxe: LOAD nom-fichier
+\ BASIC: LOAD nom-fichier
+\ charge un fichier programme 
+\ en mémoire.
 : LOAD (  ) 
 	cmd-line-only
 	next-lex
@@ -1309,53 +1553,53 @@ defer NEW
 		REPEAT
 		DROP
 		fd-in close-file THROW
-		tb-src@ drop 0 tb-src-update 
+		tb-src@ drop 0 tb-src! 
 	ENDIF 
 ; 
 
+\ définition différée de NEW
 \ BASIC: NEW 
 \ efface le programme em mémoire
 : _NEW 
 	cmd-line-only
-	PROG-MEM PROG-END ! 
+	clear-prog-mem
 	0 flags !
 ;
 
 ' _NEW is NEW 
 
+\ BASIC: NEXT var 
 \ contrôle de boucle FOR..NEXT
 \ incrémente la variable 
 \ et compare sa valeur
 \ à la limite
-\ syntaxe: NEXT var 
 : NEXT ( -- )  
 	next-lex IDLEX-VAR <> IFF ERR-SYNTAX THROW ENDIF
 	DROP 
 	DUP I@ step@ DUP >R
-	+ DUP ROT i! 
-	limit@ R> 0> IFF
+	+ DUP ROT i!
+	limit@ R> 0> IFF  
 		> IFF  
-			-1 for-depth +!
+			-1 cstack-ptr +!
 		ELSE 
-			loop-back 
+			loop-back-restore 
 		ENDIF
 	ELSE
 		< IFF 
-			-1 for-depth +!
+			-1 cstack-ptr +!
 		ELSE 
-			loop-back
+			loop-back-restore
 		ENDIF 
 	ENDIF
 ; 
 
 \ BASIC: PAUSE expr 
 \ suspend l'exécution pour 
-\ n millisecondes
+\ 'expr' millisecondes
 : PAUSE ( -- )
 	expression 
 	ABSS MS
 ;
-
 
 : print-relation ( lexème -- ) 
 	ungot!
@@ -1393,7 +1637,7 @@ defer NEW
 			IDLEX-ADD OF
 				print-relation
 			ENDOF 
-			IDLEX-BKSLH OF  \ envoie le code ASCII 0..127
+			IDLEX-BKSLASH OF  \ envoie le code ASCII 0..127
 				DROP 2DROP  
 				next-lex IDLEX-INTEGER = IFF 
 					DROP 127 AND emit
@@ -1440,43 +1684,39 @@ defer NEW
 \ retourne à la ligne de commande 
 \ de gforth
 : QUIT ( -- )
-	sp0 @ sp! 
+	WLIST-1 @ SET-CURRENT
 	ERR-QUIT THROW 
 ;
 
 \ BASIC: REM texte
-\ commentaire 
+\ commentaire ignoré par l'interpréteur
 : REM (  --  )
 	tb-src@ 
-	drop 0 tb-src-update 
+	drop 0 tb-src! 
 ; 
 
-\ sortie de sous-routine 
-\ syntaxe RETURN 
+\ BASIC: RETURN
+\ sortie de sous-routine  
 : RETURN 
 	run-time-only
-	r>
-	2r>
-	tb-src!
-	2r> 
-	line!
-	>r
+	pop-branch-context
 ; 
 
 \ evaluation ligne par ligne 
 \ du programme en mémoire
 : run-loop
 	BEGIN 
-		FRUN test-flag WHILE  \ disp-line# ( debug support )
-		line-eval 
+		FRUN test-flag WHILE  \ disp-line# rdepth ( debug support )
+		line-eval \ 2 trace 
 		FSTOP test-flag INVERT IFF next-line ENDIF 
 	REPEAT 
 ;
 
-
 \ BASIC: RUN [nom-fichier]
-\ démarre l'exécution du programme 
-\ syntaxe: RUN 
+\ démarre l'exécution du programme
+\ si un nom de fichier est donné en
+\ paramètre, le programme est chargé
+\ pour exécution immédiate.
 : RUN ( -- )
 	cmd-line-only
 	FSTOP test-flag IFF
@@ -1486,10 +1726,10 @@ defer NEW
 	ELSE 
 		LOAD 
 		PROG-MEM DUP PROG-END @ < IFF 
-			PROG-MEM DUP 2 + c@
+			DUP 2 + c@
 			line!
 			tb-src-init
-			-1 for-depth ! 
+			-1 cstack-ptr ! 
 			FRUN flags !
 			run-loop
 		ELSE 
@@ -1498,7 +1738,6 @@ defer NEW
 	ENDIF
 ; 
 
-
 \ BASIC: SAVE nom-fichier 
 \ sauvegarde le programme 
 \ dans un fichier 
@@ -1506,7 +1745,7 @@ defer NEW
 	cmd-line-only
 	next-lex IDLEX-LABEL = IFF 
 		." sauvegarde de " 2DUP TYPE 
-		w/o create-file THROW TOO fd-out cr .s 
+		w/o create-file THROW TOO fd-out
 		PROG-MEM 
 		BEGIN
 			DUP PROG-END @ < WHILE
@@ -1520,15 +1759,14 @@ defer NEW
 	ENDIF 
 ; 
 
-\ BASIC: FOR var=expr TO expr [STEP expr] ... NEXT var 
-\ incrément boucle FOR..NEXT 
+\ BASIC: FOR var=expr TO expr STEP expr
+\ incrément de boucle FOR..NEXT 
 \ détermine l'incrément de la
-\ variable. Optionnel 
-\ syntaxe: STEP expr 
+\ variable. Optionnel valeur par défaut 1 
 : STEP ( -- )
 	expression
 	step!
-    tb-src@ loop-back!
+    loop-back-save
 ; 
 
 \ BASIC: STOP
@@ -1543,69 +1781,72 @@ defer NEW
 	CR ." programme arrêté par STOP"
 ; 
 
-\ limite boucle FOR..NEXT 
-\ syntaxe:  TO expr 
-:  TO 
+\ BASIC: IF relation THEN liste-commande 
+\ saute à la fin de la ligne 
+\ si la relation est fausse 
+: THEN ( n -- ) 
+	0= IFF
+		tb-src@ + 0 tb-src!
+	ENDIF
+;
+
+
+\ BASIC: FOR var=expr TO expr 
+\ limite de boucle FOR..NEXT 
+: TO 
    expression
    limit!
    1 step!
-   tb-src@ loop-back!
+   loop-back-save
 ; 
 
 \ évalue la ligne de commande 
 \ si débute par no de ligne 
 \ sauvegarde la ligne dans 
-\ prog-space 
+\ PROG-MEM 
 \ sinon exécute la commande.
 : cmd-eval ( buf count --  )
-	2DUP line! tb-src-update 
+	2DUP line! tb-src! 
 	next-lex
 	DUP IDLEX-INTEGER = IFF
-		2drop
-		save-line
+		2drop skip-spaces
+		add-line \ ligne de programme à sauvegarder
 	ELSE
 		ungot! 
-		line-eval 
+		line-eval \ commande interactive 
 	ENDIF
 ;
 
 ' cmd-eval is tb-eval
 
-\ user interface 	
+\ interface de commande tiny BASIC	
 : CMD-LINE 
 	BEGIN 
 		CMD-BUF CMD-BUF-SIZE 
 		CR [CHAR] # EMIT 
 		read-cmd-line ( buf size -- buf cnt )
 		['] cmd-eval CATCH ?DUP IFF 
-			DUP ERR-QUIT = IFF EXIT ENDIF 
+			DUP ERR-QUIT = IFF preset EXIT ENDIF 
 			error
 		ENDIF 
 	AGAIN 
 ; 
-
 		
 \ lance tiny BASIC 			
 : BASIC ( -- )
 	HI 
-	PROG-MEM PROG-END !
+	clear-prog-mem
 	utime drop seed !  
 	CMD-LINE
 	CR ." Sortie de tiny BASIC"
 	CR ." pour supprimer tiny BASIC"
-	CR ." faite: kill-basic"
-	1000 MS  CR 
+	CR ." faite: KILL-BASIC"
+	CR CR  
 ; 
 
 \ démarre l'interpréteur
-\ Utiliser la commande QUIT
-\ pour revenir à la ligne de
-\ commande gforth 
+\ Utilisez la commande 'QUIT'
+\ pour revenir à gforth
 BASIC
-
-\ pour supprimer le programme 
-\ tin-basic de l'environnement
-\ gforth faire KILL-BASIC 
-\ à partir de la ligne de 
-\ commande gforth   
+   
 

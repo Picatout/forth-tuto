@@ -1,0 +1,3 @@
+10 ? "TRY AGAIN?" ; INPUT N 
+20 IF N=ASC(N) ; END
+30 GOTO 10

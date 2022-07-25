@@ -42,6 +42,10 @@ CHAR V north c-head ! \ tete direction nord
     2 + 
 ; 
  
+\ émet un BEEP
+: beep ( -- )
+	7 emit 
+;
 
 \ introducteur de séquence de 
 \ controle ANSI  27[
