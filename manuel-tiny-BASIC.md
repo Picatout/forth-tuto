@@ -207,7 +207,7 @@ Lorsqu'il se produit une erreur dans un programme la ligne où s'est produite l'
 erreur: 2 
 ? fsaf
       ^
-Commane inconnue.
+Commande inconnue.
 #
 ```
 
@@ -219,6 +219,8 @@ code | message | description
 4 | Ne peut-être utilisé que sur la ligne de commande. | Vous avez utilisé dans un programme une commande qui ne peut l'être que sur la ligne de commande.
 5 | Argument manquant. | La commande exige un argument qui ne lui a pas été fourni.
 6 | Aucune ligne ne porte ce numéro. | Un mauvais numéro de ligne a été fourni à une commande **GOTO** ou **GOSUB**.
+-9 | mauvaise addresse | Mauvaise adresse, Le programme a accéder une adresse invalide. 
+-10 | division par zéro |  Le programme a effectué une division par zéro.
 -28 | Programme interrompu par l'utilisateur. | Vous avez utiliser **CTRL+C** pour interrompe un programme en cours d'exécution.
 -514 | Fichier inexistant. | Vous avez fourni un mauvais nom de fichier à la commande **LOAD** ou **RUN**. 
  

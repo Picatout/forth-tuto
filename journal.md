@@ -1,5 +1,7 @@
 #### 2022-07-25 
 
+* Modifié *loopback-save*.
+
 * Ajouté **THEN** à la commande **IF**. 
  
 

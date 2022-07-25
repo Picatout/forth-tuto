@@ -613,7 +613,12 @@ variable cstack-ptr
 \ pour NEXT 
 \ appellé par TO et STEP
 : loop-back-save ( -- )
-	tb-src@
+	tb-src@ ?DUP
+	0= IFF 
+		DUP HEADER-SIZE + SWAP 
+		TB-LN-LEN + C@ 
+		HEADER-SIZE - 
+	ENDIF 
 	LOOP-CNT cstack !
 	LOOP-IN cstack !
 ;
