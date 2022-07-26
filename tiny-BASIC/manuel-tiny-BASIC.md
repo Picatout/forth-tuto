@@ -4,9 +4,8 @@ Copyright Jacques Deschênes, 2022
 
 # Manuel de l'utilisateur du Tiny BASIC que j'ai écris en gforth.
 
-Pour écris cet interpréteur Tiny BASIC je me suis inspiré du manuel [TINIDISK.DOC](TINYDISK.DOC) bien que les fonctionnalités ne sois pas tout fait indentiques.
-A l'origine Tiny BASIC a été créé au début des années pour les ordinateurs 8 bits de l'époque qui étaient limitées en mémoire et en puissance. J'ai donc omis les fonctionnalitées qui
-ne s'applique pas à cette version qui  fonctionne sur un PC moderne. 
+Pour écris cet interpréteur Tiny BASIC je me suis inspiré du manuel [TINIDISK.DOC](TINIDISK.DOC) bien que les fonctionnalités ne sois pas tout à fait indentiques.
+A l'origine Tiny BASIC a été créé au début des années 70 pour les ordinateurs 8 bits de l'époque qui étaient limitées en mémoire et en puissance. J'ai donc omis les fonctionnalitées qui ne s'applique pas à cette version qui fonctionne sur un PC moderne. 
 
 ### fonctions non répliquées
 
@@ -20,13 +19,23 @@ ne s'applique pas à cette version qui  fonctionne sur un PC moderne.
 
 * **POKE**
 
-### fonctions ajoutées
+### fonctions ou commandes ajoutées
+
+* **ASC(car.)** retourne le code ASCII d'un caractère. 
+
+* **BEEP** Génère une tonalité brève en envoyant le code ASCII 7 au terminal.
+
+* **CLS** Efface l'écran du terminal.
+
+* **MSEC** retourne le nombre de millisecondes depuis le démarrage de tiny BASIC. Cette valeur est modulo 65536. 
 
 * **PAUSE** *expr*  pour suspendre l'exécution d'un programme pendant un certain nomnbre de millisecondes
 
 * J'ai ajout l'alias **?** pour la commande **PRINT**
 
-* La commande **PRINT** peut envoyer des caractères de contrôles en utilisant un backslash comme ceci **\27** envoie le code ESC au terminal.
+* Le mot réservé **THEN** a été ajouté après **IF expression** pour séparer les commandes qui suivent. 
+
+* La commande **PRINT** peut envoyer des caractères de contrôles en utilisant un backslash comme ceci **\27** envoie le code ESC au terminal. Ce qui permet d'envoyer des caractères de contrôle au terminal du shell de commande.
 
 * J'ai ajouter l'opérateur **%** qui retourne le modulo d'une division.
 
@@ -104,6 +113,11 @@ Pour la commande **IF** il existe des opérateurs relationnel qui établissent l
 
 ### Commandes BASIC
 
+* **BEEP** Produit un son bref et fait une pause de 125 msec.  Le son est produit en 
+envoyant le code ASCII 7 au terminal. Ce dernier doit donct traiter ce code. Le terminal du shell de commande utilisé dans Ubuntu 20.04 LTS traite ce code.
+
+* **CLS** Efface l'écran. Il s'agit de 2 séquence de contrôle ANSI envoyé au terminal. **ESC[2J** efface l'écran et **ESC[H** envoie le curseur dans le coin supérieur gauche. Donc le terminal doit-être conforme aux standard ANSI.
+
 * **END** termine l'exécution du programme
 
 * **FOR** Initialise une boucle **FOR var=expr TO limit [STEP expr] [;déclaration]* ; NEXT var**
@@ -154,24 +168,24 @@ une virgule il n'y a pas de retour à la ligne d'envoyé au terminal.
 * **STOP** arrête l'exécution du programme et retourne à la ligne de commande. Il s'agit d'un outil d'aide au débogage. Il permet d'examiner le contenu des variables pour ensuitre redémarrer le programme au
 point d'arrêt avec la commande **RUN**. 
 
+* **THEN** Mot réservé faisant parti de la commande **IF relation THEN liste-commandes**.
+
 * **TO expr** Cette commande fait parti de l'initialisation d'une boucle **FOR ... NEXT** et fixe la limite de la variable de contrôle. Lorsque la valeur de la variable de contrôle dépasse cette
 limite le programme sort de la boucle.
 
 ### Contrôle de flux 
 
-l'exécution du programme débute à la ligne portant le plus petit numéro et s'exécute ligne après ligne en ordre croissant de numéro de ligne. Cependant il y a plusieurs commandes qui permettent 
-de modifier cette ordre. 
+l'exécution du programme débute à la ligne portant le plus petit numéro et s'exécute ligne après ligne en ordre croissant de numéro de ligne. Cependant il y a plusieurs commandes qui permettent de modifier cette ordre. 
 
 * Le **GOTO n** Permet de sauter à un numéro de ligne quelconque. 
 
-* Le **GOSUB n** Permet d'appeller une sous-routine qui début à la ligne **n**. La sous-routine doit se terminer par la commande **RETURN**. Ce qui ramène l'exécution juste après l'appel **GOSUB**.
+* Le **GOSUB n** Permet d'appeller une sous-routine qui débute à la ligne **n**. La sous-routine doit se terminer par la commande **RETURN**. Ce qui ramène l'exécution juste après l'appel **GOSUB**.
 
-* Le **IF relation  THEN liste-de-commande**  permet une exécution conditionnelle de la liste de commandes qui suit la relation si celle-ci est  vrai. Si la relation est fausse **liste-de-commandes** est 
-ignorée et l'exécution se poursuit à la ligne suivante.
+* Le **IF relation  THEN liste-de-commande**  permet une exécution conditionnelle de la liste de commandes qui suit le **THEN** si la relation est  vrai. Si la relation est fausse **liste-de-commandes** est ignorée et l'exécution se poursuit à la ligne suivante.
 
-* La boucle **FOR var=expr TO limite [STEP incrément] liste-de-commande NEXT var**  Permet d'exécuter une liste de commandes en boucle contrôler par une variable compteur. La variable est initialisée à 
-une certaine valeur et lorsqu'elle dépasse la limite l'exécution de la boucle prend fin. La liste de commande peut s'étendre sur plusieurs lignes du programme. La variable mentionnée par **NEXT** doit-être
-la même que celle déclarée par **FOR**.  Plusieurs boucles peuvent-être imbriquées l'une dans l'autre jusqu'à 8 niveaux. 
+* La boucle **FOR var=expr TO limite [STEP incrément] liste-de-commande NEXT var**  Permet d'exécuter une liste de commandes en boucle contrôlée par une variable compteur. La variable est initialisée à 
+une certaine valeur et lorsqu'elle dépasse la limite l'exécution de la boucle prend fin. La liste de commandes peut s'étendre sur plusieurs lignes du programme. La variable mentionnée par **NEXT** doit-être
+la même que celle déclarée par **FOR**.  Plusieurs boucles peuvent-être imbriquées l'une dans l'autre. 
 
 * La commande **END** termine l'exécution du programme et peut-être placée à plusieurs endroit dans le programme pour mettre fin au programme si une certaine condition est rencontrée.
 
@@ -206,13 +220,13 @@ Lorsqu'il se produit une erreur dans un programme la ligne où s'est produite l'
 
 erreur: 2 
 ? fsaf
-      ^
+     ^
 Commande inconnue.
 #
 ```
 
 code | message | description
---
+-- |--|--
 1 | Erreur de syntaxe. | Il y a une erreur de syntaxe dans le programme ou la commande
 2 | Commande inconnue. | Un nom de commande ou de fonction inconnu a été utilisé.  
 3 | Ne peut-être utilisé que dans un programme. | Vous avez tenter d'utilisez sur la ligne de comnmande une commande qui ne peut-être qu'utilisée dans un programme.

@@ -1,7 +1,31 @@
+\ snake 
+\ Copyright Jacques Deschênes 2022 
+\ This file is part of snake 
+\
+\     snake is free software: you can redistribute it and/or modify
+\     it under the terms of the GNU General Public License as published by
+\     the Free Software Foundation, either version 3 of the License, or
+\     (at your option) any later version.
+\
+\     snake is distributed in the hope that it will be useful,
+\     but WITHOUT ANY WARRANTY; without even the implied warranty of
+\     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\     GNU General Public License for more details.
+\
+\     You should have received a copy of the GNU General Public License
+\     along with snake.  If not, see <http://www.gnu.org/licenses/>.
+\
 \ jeu serpent en mode terminal texte.
 \ 
 
-REQUIRE random.fs 
+marker forget-snake 
+
+get-order 
+get-current value wlist-org
+wordlist set-current 
+get-current swap 1+ set-order
+
+REQUIRE ../xorshift64.fs 
 
 \ constantes
 128 CONSTANT max-len \ longueur maximale du serpent
@@ -10,8 +34,8 @@ REQUIRE random.fs
 1 CONSTANT south
 2 CONSTANT west
 3 CONSTANT north
-78 CONSTANT play-width \ largeur surface jeu
-22 CONSTANT play-height \ hauteur surface jeu
+76 CONSTANT play-width \ largeur surface jeu
+20 CONSTANT play-height \ hauteur surface jeu
 2 CONSTANT x-offset \ pour affichage
 3 CONSTANT y-offset \ pour affichage
 CHAR S CONSTANT ar_left \ vire a gauche
@@ -29,7 +53,7 @@ VARIABLE energy \ réserve d'énergie du serpent
 \ vector permet de creer des variables tableau 1D
 : vector CREATE CELLS ALLOT DOES> SWAP CELLS + ;
 \ variables tableaux
-4 vector c-head \ contient les caracteres de tete serpent
+4 vector c-head \ contient les caracteres de la tête du serpent
 max-len vector snake \ le corps du serpent
 
 \ initialisation c-head
@@ -47,33 +71,30 @@ CHAR V north c-head ! \ tete direction nord
 	7 emit 
 ;
 
-\ introducteur de séquence de 
-\ controle ANSI  27[
-: csi ( -- )
-    27 EMIT [CHAR] [ EMIT 
-;
-
 \ inverse l'affichage video 
 \ FALSE  blanc/noir
 \ TRUE  noir/blanc 
 : b/w  ( flag -- ) 
-    csi 
+    esc[ 
     7 AND [CHAR] 0 + EMIT 
     [CHAR] m EMIT 
 ;
 
 \ set cursor shape 
 : cursor  ( -- )  
-    csi [CHAR] 0 + EMIT SPACE [CHAR] q EMIT
+    esc[ 
+    [CHAR] 0 + EMIT 
+    SPACE [CHAR] q EMIT
 ; 
 
 \ efface à partir du curseur 
 \ jusqu'à la fin de la ligne.
 : clreol ( -- )
-    csi [CHAR] K EMIT 
+    esc[ [CHAR] K EMIT 
 ; 
 
 \ fonctions graphiques
+
 \ conversion entier non signe vers couple {x,y}
 : ucoord>xy ( u -- x y )
    256 /MOD 
@@ -107,18 +128,21 @@ CHAR V north c-head ! \ tete direction nord
     FALSE b/w 
 ;
 
-\ dessine les bandes de l'arene
+\ dessine les bandes de l'arène
 : draw-walls ( -- )
-    PAGE 
-    y-offset 1- whiteln \ top border
-    play-height y-offset + whiteln \ bottom border
-    TRUE b/w 
-    play-height y-offset + >R y-offset
-    BEGIN DUP R@ < WHILE 
+    PAGE \ efface l'écran
+    y-offset 1- whiteln \ bande du haut
+    play-height y-offset + whiteln \ bande du bas
+    \ dessine les bandes gauche et droite 
+    TRUE b/w
+    play-height y-offset + >R \ limite
+    y-offset \ position de départ 
+    BEGIN
         1 OVER AT-XY SPACE 
         play-width x-offset + OVER AT-XY SPACE 
-        1+ 
-    REPEAT 
+        1+
+        DUP R@ = 
+    UNTIL 
     R>
     2DROP  
     FALSE b/w 
@@ -177,7 +201,7 @@ CHAR V north c-head ! \ tete direction nord
 ;
 
 \ Lors de la creation d'une pastille il faut valider
-\ qu'elle ne superpose pas au serpent.
+\ qu'elle ne se superpose pas au serpent.
 : valid-food? ( u -- f )
     TRUE SWAP snake-len @ >R 0 
     BEGIN
@@ -194,10 +218,9 @@ CHAR V north c-head ! \ tete direction nord
 
 \ creation d'une pastille de nourriture
 : new-food ( -- )
-    0 
-    BEGIN 
-        DROP play-width  RANDOM x-offset +  \ x
-        play-height RANDOM y-offset +  \ y
+    BEGIN
+        play-width  RANDOM  \ x
+        play-height RANDOM \ y
         xy>ucoord DUP valid-food? 
     UNTIL 
     food ! 
@@ -375,7 +398,6 @@ CHAR V north c-head ! \ tete direction nord
 
 \ initialisation du jeu
 : game-init ( -- )
-    UTIME DROP SEED ! \ initialize PRNG generator 
     70 speed ! 
     200 energy ! 
     4 snake-len ! 
@@ -391,7 +413,7 @@ CHAR V north c-head ! \ tete direction nord
 \ attend une touche 
 \ retourne vrai si touche 'Q' 
 : game-exit? (  -- f )
-    1 26 AT-XY
+    1 play-height y-offset + 1+ AT-XY
     starvation? IF 
         ." died of starvation" CR 
     ENDIF
@@ -410,6 +432,8 @@ CHAR V north c-head ! \ tete direction nord
 
 \ lance le jeux.
 : snake-run ( -- )
+    UTIME DROP SEED !
+    UTIME DROP 127 AND 0 DO RND LOOP  
     6 CURSOR \ change la forme du curseur pour une barre verticale
     BEGIN 
         game-init 
@@ -420,8 +444,16 @@ CHAR V north c-head ! \ tete direction nord
     PAGE \ efface l'écran
 ;
 
+\ supprime le jeu de l'environnement forth
+: kill-snake
+    get-order swap drop 1- 
+    set-order 
+    wlist-org set-current 
+    forget-snake
+;
+
 snake-run \ démarre le jeu 
 
-bye \ quitte gforth
+\ bye \ quitte gforth
 
 

@@ -18,16 +18,14 @@
 
 
 
-MARKER KILL-BASIC 
+MARKER forget-basic 
 
-require random.fs
+require ../xorshift64.fs
 
-VARIABLE WLIST-1
-VARIABLE WLIST-TBASIC
-GET-CURRENT WLIST-1 !
-WORDLIST WLIST-TBASIC !
-GET-ORDER WLIST-TBASIC @ SWAP 1+ SET-ORDER
-WLIST-TBASIC @ SET-CURRENT 
+get-order 
+get-current value current-org
+wordlist set-current 
+get-current swap 1+ set-order
 
 
 \ valeur minimale d'un entier 16 bits
@@ -96,7 +94,7 @@ $FFFF CONSTANT U16-MASK
 \ recherche le nom d'une commande 
 \ dans le vocabulaire WLIST-BASIC
 : FIND ( c-addr u -- 0 | xt 1 | xt -1 ) 
-	WLIST-TBASIC @ SEARCH-WORDLIST 
+	get-current SEARCH-WORDLIST 
 ;
 
 \ constantes identifiant le type d'erreur
@@ -1391,6 +1389,23 @@ defer relation
 	125 MS 
 ;
 
+\ introduit une sequence de contrôle
+\ ANSI pour le terminal
+\ Control Sequence Introducer
+: csi ( -- )
+	27 emit 
+	[char] [ emit	
+;
+
+\ BASIC: CLS
+\ efface l'écran du terminal
+: CLS ( -- )
+	csi 
+	[char] 2 emit [char] J EMIT
+	csi 
+	[char] H emit 
+;
+
 \ BASIC: END 
 \ termine l'exécution du programme
 : END ( -- )
@@ -1644,11 +1659,16 @@ defer NEW
 			ENDOF 
 			IDLEX-BKSLASH OF  \ envoie le code ASCII 0..127
 				DROP 2DROP  
-				next-lex IDLEX-INTEGER = IFF 
+				next-lex 
+				CASE 
+				IDLEX-INTEGER OF 
 					DROP 127 AND emit
-				ELSE
+				ENDOF 
+				IDLEX-VAR OF 
+					DROP I@ 127 AND EMIT 
+				ENDOF 
 					ERR-SYNTAX THROW
-				ENDIF
+				ENDCASE
 			ENDOF 
 			IDLEX-LABEL OF 
 				print-relation 
@@ -1689,7 +1709,6 @@ defer NEW
 \ retourne à la ligne de commande 
 \ de gforth
 : QUIT ( -- )
-	WLIST-1 @ SET-CURRENT
 	ERR-QUIT THROW 
 ;
 
@@ -1848,6 +1867,15 @@ defer NEW
 	CR ." faite: KILL-BASIC"
 	CR CR  
 ; 
+
+\ supprime tiny-basic de 
+\ l'environnement forth
+: kill-basic
+    get-order swap drop 1- 
+    set-order 
+	current-org set-current 
+	forget-basic
+;
 
 \ démarre l'interpréteur
 \ Utilisez la commande 'QUIT'

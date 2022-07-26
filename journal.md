@@ -1,4 +1,21 @@
-#### 2022-07-25 
+### 2022-07-26
+
+* Modifié tiny-basic.fs pour remplacé **random.fs** par [xorshift64.fs](xorshift64.fs) 
+  et modifié autre code.
+  
+* Création de [xorshift64.fs](xorshift64.fs) en remplacement de **random.fs** qui est un médiocre PRNG.
+
+* Corrigé bogue dans snake.fs
+
+### 2022-07-25 
+
+* Découvert un bogue dans snake.fs parfois la pastille apparaît en dehors de l'ère de jeu.
+
+* Création d'un dossier pour chaque programme Forth.
+
+* Complété le programme [tb-test.bas](tb-test.bas)
+
+* Travail sur [manuel-tiny-BASIC.md](manuel-tiny-BASIC.md)
 
 * Modifié *loopback-save*.
 
