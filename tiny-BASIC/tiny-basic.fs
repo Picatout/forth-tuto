@@ -1389,22 +1389,19 @@ defer relation
 	125 MS 
 ;
 
-\ introduit une sequence de contrôle
-\ ANSI pour le terminal
-\ Control Sequence Introducer
-: csi ( -- )
-	27 emit 
-	[char] [ emit	
-;
-
 \ BASIC: CLS
 \ efface l'écran du terminal
 : CLS ( -- )
-	csi 
-	[char] 2 emit [char] J EMIT
-	csi 
-	[char] H emit 
+	page 
 ;
+
+\ BASIC: DIR 
+\ affiche la liste de programmes BASIC
+: DIR
+	S" ls *.bas *.BAS" 
+	system
+;
+
 
 \ BASIC: END 
 \ termine l'exécution du programme

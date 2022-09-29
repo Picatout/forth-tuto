@@ -4,7 +4,7 @@ Copyright Jacques Deschênes, 2022
 
 # Manuel de l'utilisateur du Tiny BASIC que j'ai écris en gforth.
 
-Pour écris cet interpréteur Tiny BASIC je me suis inspiré du manuel [TINIDISK.DOC](TINIDISK.DOC) bien que les fonctionnalités ne sois pas tout à fait indentiques.
+Pour écrire cet interpréteur Tiny BASIC je me suis inspiré du manuel [TINIDISK.DOC](TINIDISK.DOC) bien que les fonctionnalités ne sois pas tout à fait indentiques.
 A l'origine Tiny BASIC a été créé au début des années 70 pour les ordinateurs 8 bits de l'époque qui étaient limitées en mémoire et en puissance. J'ai donc omis les fonctionnalitées qui ne s'applique pas à cette version qui fonctionne sur un PC moderne. 
 
 ### fonctions non répliquées
@@ -31,7 +31,7 @@ A l'origine Tiny BASIC a été créé au début des années 70 pour les ordinate
 
 * **PAUSE** *expr*  pour suspendre l'exécution d'un programme pendant un certain nomnbre de millisecondes
 
-* J'ai ajout l'alias **?** pour la commande **PRINT**
+* J'ai ajouté l'alias **?** pour la commande **PRINT**
 
 * Le mot réservé **THEN** a été ajouté après **IF expression** pour séparer les commandes qui suivent. 
 
@@ -116,7 +116,9 @@ Pour la commande **IF** il existe des opérateurs relationnel qui établissent l
 * **BEEP** Produit un son bref et fait une pause de 125 msec.  Le son est produit en 
 envoyant le code ASCII 7 au terminal. Ce dernier doit donct traiter ce code. Le terminal du shell de commande utilisé dans Ubuntu 20.04 LTS traite ce code.
 
-* **CLS** Efface l'écran. Il s'agit de 2 séquence de contrôle ANSI envoyé au terminal. **ESC[2J** efface l'écran et **ESC[H** envoie le curseur dans le coin supérieur gauche. Donc le terminal doit-être conforme aux standard ANSI.
+* **CLS** Efface l'écran. Il s'agit de 2 séquences de contrôle ANSI envoyé au terminal. **ESC[2J** efface l'écran et **ESC[H** envoie le curseur dans le coin supérieur gauche. Donc le terminal doit-être conforme aux standard ANSI.
+
+* **DIR** Affiche la liste des programmes BASIC disponible dans le répertoire courant.
 
 * **END** termine l'exécution du programme
 
@@ -127,8 +129,6 @@ envoyant le code ASCII 7 au terminal. Ce dernier doit donct traiter ce code. Le 
 * **GOTO line#** Fait un saut vers la ligne *line*
 
 * **IF relation  THEN liste-commandes**  Si la relation retourne vrai les commandes qui suivent sur la même ligne sont exécutées. Sinon l'écution continue sur la ligne suivante.
-```
-```
 
 * __INPUT [chaine]var [,[chaine]var]*__  est utilisé pour permettre à l'utilisateur de saisir une valeur. Cette valeur est déposée dans la variable. Si une chaîne est fournie avant la variable
 la chaîne est affichée à l'écran, sinon c'est le nom de la variable qui est affichée. Plusieurs saisie peuvent-être effectuées en séparant les variables par une virgule.
@@ -139,9 +139,9 @@ la chaîne est affichée à l'écran, sinon c'est le nom de la variable qui est 
 
 * **LOAD nom-fichier** Charge en mémoire un fichier programme. 
 
-* **NEW** Nettoye la mémoire programme pour la préparer à recevoir un nouveau programme.
+* **NEW** Nettoie la mémoire programme pour la préparer à recevoir un nouveau programme.
 
-* **NEXT var** Se place à la fin d'une boucle **FOR** Cette commande incrémente la variable de contrôle et boucle si la limite n'a pas encore étée atteinte. Lorsque la limite est dépasser la boucle se temrine et
+* **NEXT var** Se place à la fin d'une boucle **FOR** Cette commande incrémente la variable de contrôle et boucle si la limite n'a pas encore étée atteinte. Lorsque la limite est dépassée la boucle se temrine et
 l'exécution se poursuit à la commande suivante.
 
 * **PAUSE expr** Suespend l'exécution pour un nombre de millisecondes.
@@ -158,14 +158,14 @@ une virgule il n'y a pas de retour à la ligne d'envoyé au terminal.
 
 * **RETURN**  Cett commande permet de quitter une sous-routine et de continuer l'exécution du programme après le **GOSUB n** qui a appellé cette sous-routine.
 
-* **RUN [nom-fichier]** Cette commande lance l'exécution du programme en mémoire si le programme a été arrêté avec la commande **STOP** l'exécution redémarre au point d'arrêt. Si un nom de fichier est donner 
+* **RUN [nom-fichier]** Cette commande lance l'exécution du programme en mémoire si le programme a été arrêté avec la commande **STOP** l'exécution redémarre au point d'arrêt. Si un nom de fichier est donné 
 à la commande le fichier est chargé et exécuté.
 
 * **SAVE nom-fichier** Permet de sauvegarder dans un fichier le programme en mémoire. 
 
-* **STEP expr** Fait partie de l'initialisation d'une boucle **FOR..NEXT** et sert à déterminer l'incrément de la variable. **STEP** est facultatif, si absent l'incrément par défaut est **1**.
+* **STEP expr** Fait partie de l'initialisation d'une boucle **FOR..NEXT** et sert à déterminer l'incrément de la variable. **STEP** est facultatif, si absent l'incrément par défaut est **1**. **STEP** peut-être négatif, dans ce cas la limite doit-être plus petite que la valeur initiale.
 
-* **STOP** arrête l'exécution du programme et retourne à la ligne de commande. Il s'agit d'un outil d'aide au débogage. Il permet d'examiner le contenu des variables pour ensuitre redémarrer le programme au
+* **STOP** arrête l'exécution du programme et retourne à la ligne de commande. Il s'agit d'un outil d'aide au débogage. Il permet d'examiner le contenu des variables pour ensuite redémarrer le programme au
 point d'arrêt avec la commande **RUN**. 
 
 * **THEN** Mot réservé faisant parti de la commande **IF relation THEN liste-commandes**.
@@ -235,6 +235,6 @@ code | message | description
 6 | Aucune ligne ne porte ce numéro. | Un mauvais numéro de ligne a été fourni à une commande **GOTO** ou **GOSUB**.
 -9 | mauvaise addresse | Mauvaise adresse, Le programme a accéder une adresse invalide. 
 -10 | division par zéro |  Le programme a effectué une division par zéro.
--28 | Programme interrompu par l'utilisateur. | Vous avez utiliser **CTRL+C** pour interrompe un programme en cours d'exécution.
+-28 | Programme interrompu par l'utilisateur. | Vous avez utilisé **CTRL+C** pour interrompe un programme en cours d'exécution.
 -514 | Fichier inexistant. | Vous avez fourni un mauvais nom de fichier à la commande **LOAD** ou **RUN**. 
  

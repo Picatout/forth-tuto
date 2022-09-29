@@ -1,3 +1,7 @@
+### 2022-09-28
+
+* Ajout de la commande **DIR** au programme [tiny-BASIC/tiny-basic.fs](tiny-basic.fs)
+
 ### 2022-07-26
 
 * Modifié tiny-basic.fs pour remplacé **random.fs** par [xorshift64.fs](xorshift64.fs) 
