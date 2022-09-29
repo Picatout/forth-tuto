@@ -1,3 +1,7 @@
+### 2022-09-29
+
+* Amélioration de la commande **DIR** en envoyant la sortie de **ls** via un **pipe**  vers **grep**.
+
 ### 2022-09-28
 
 * Ajout de la commande **DIR** au programme [tiny-BASIC/tiny-basic.fs](tiny-basic.fs)

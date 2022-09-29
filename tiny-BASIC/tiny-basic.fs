@@ -1398,7 +1398,7 @@ defer relation
 \ BASIC: DIR 
 \ affiche la liste de programmes BASIC
 : DIR
-	S" ls *.bas *.BAS" 
+	S" ls | grep [.][bB][aA][sS] --color=never" 
 	system
 ;
 
