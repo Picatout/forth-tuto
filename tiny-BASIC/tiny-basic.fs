@@ -20,7 +20,7 @@
 
 MARKER forget-basic 
 
-require ../xorshift64.fs
+require ../lib/xorshift64.fs
 
 get-order 
 get-current value current-org

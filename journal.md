@@ -1,3 +1,11 @@
+### 2022-10-14 
+
+* renommé répertoire **premiers-pas** en **lib** et déplacé fichier [xorshift.fs](lib/xorshift64.fs) dans **lib**.
+
+* Modifié documentation dans [xorshift.fs](lib/xorshift64.fs).
+
+* Modifié référence à [xorshift.fs](lib/xorshift64.fs) dans les programmes BASIC.
+
 ### 2022-09-29
 
 * Amélioration de la commande **DIR** en envoyant la sortie de **ls** via un **pipe**  vers **grep**.
