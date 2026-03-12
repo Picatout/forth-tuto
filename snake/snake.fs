@@ -25,7 +25,7 @@ get-current value wlist-org
 wordlist set-current 
 get-current swap 1+ set-order
 
-REQUIRE ../xorshift64.fs 
+REQUIRE ../lib/xorshift64.fs 
 
 \ constantes
 128 CONSTANT max-len \ longueur maximale du serpent

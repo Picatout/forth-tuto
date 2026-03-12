@@ -6,9 +6,9 @@ Je travaille sur un PC avec Ubuntu 20.04 LTS et gforth version 0.7.3
 
 Le dossier racine contient des fichiers forth  librairies pour les autres programmes.
 
-Chaque sous-dossier contient un programme écris en Forth. 
+Chaque sous-dossier contient un programme écris en gForth. 
 
-* Le dossier **premiers-pas** contient une variété de petits programmes.
+* Le dossier **lib** contient une variété de petits programmes.
 
 * Le dossier **snake** contient un jeu en mode console texte.
 
@@ -25,6 +25,8 @@ Chaque sous-dossier contient un programme écris en Forth.
  * [Forth-standard.org](https://forth-standard.org/standard/words)
 
  * [Manuel gforth](https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/index.html#Top)
+
+__2022-10-11__
 
 
  
